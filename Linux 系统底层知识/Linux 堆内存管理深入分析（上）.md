@@ -1,3 +1,5 @@
+原文 by 位@阿里聚安全  
+
 ## 0 前言
 近年来，漏洞挖掘越来越火，各种漏洞挖掘、利用的分析文章层出不穷。从大方向来看，主要有基于栈溢出的漏洞利用和基于堆溢出的漏洞利用两种。国内关于栈溢出的资料相对较多，这里就不累述了，但是关于堆溢出的漏洞利用资料就很少了。鄙人以为主要是堆溢出漏洞的门槛较高，需要先吃透相应操作系统的堆内存管理机制，而这部分内容一直是一个难点。因此本系列文章主要从Linux系统堆内存管理机制出发，逐步介绍诸如基本堆溢出漏洞、基于unlink的堆溢出漏洞利用、double free、use-after-free等等常见的堆溢出漏洞利用技术。  
  
@@ -95,7 +97,6 @@ int main() {
 2. After malloc in main thread :  
 在主线程中调用malloc之后，就会发现系统给程序分配了堆栈，且这个堆栈刚好在数据段之上：  
 ![](../pictures/heapmanager1.png)    
-
 这就说明它是通过brk系统调用实现的。并且，还可以看出虽然我们只申请了1000字节的数据，但是系统却分配了132KB大小的堆，这是为什么呢？原来这132KB的堆空间叫做arena，此时因为是主线程分配的，所以叫做main arena(每个arena中含有多个chunk，这些chunk以链表的形式加以组织)。由于132KB比1000字节大很多，所以主线程后续再申请堆空间的话，就会先从这132KB的剩余部分中申请，直到用完或不够用的时候，再通过增加program break location的方式来增加main arena的大小。同理，当main arena中有过多空闲内存的时候，也会通过减小program break location的方式来缩小main arena的大小。  
 
 3. After free in main thread :  
@@ -247,7 +248,8 @@ NOTE:
 
 ## 5 对chunk的理解
 
-在glibc malloc中将整个堆内存空间分成了连续的、大小不一的chunk，即对于堆内存管理而言chunk就是最小操作单位。Chunk总共分为4类：1)allocated chunk; 2)free chunk; 3)top chunk; 4)Last remainder chunk。从本质上来说，所有类型的chunk都是内存中一块连续的区域，只是通过该区域中**特定位置的某些标识符**加以区分。为了简便，我们先将这4类chunk简化为2类：allocated chunk以及free chunk，前者表示已经分配给用户使用的chunk，后者表示未使用的chunk。  
+在glibc malloc中将整个堆内存空间分成了连续的、大小不一的chunk，即对于堆内存管理而言chunk就是最小操作单位。Chunk总共分为4类：1)allocated chunk; 2)free chunk; 3)top chunk; 4)Last remainder chunk。  
+从本质上来说，所有类型的chunk都是内存中一块连续的区域，只是通过该区域中**特定位置的某些标识符**加以区分。为了简便，我们先将这4类chunk简化为2类：allocated chunk以及free chunk，前者表示已经分配给用户使用的chunk，后者表示未使用的chunk。  
 
 
 众所周知，无论是何种堆内存管理器，其完成的核心目的都是能够高效地分配和回收内存块(chunk)。因此，它需要设计好相关算法以及相应的数据结构，而数据结构往往是根据算法的需要加以改变的。既然是算法，那么算法肯定有一个优化改进的过程，所以本文将根据堆内存管理器的演变历程，逐步介绍在glibc malloc中chunk这种数据结构是如何设计出来的，以及这样设计的优缺点。  
@@ -344,3 +346,5 @@ NON_MAIN_ARENA(N)：表示当前chunk是否是thread arena。
 
 然后回答第二个问题。此类型的chunk用于提高连续malloc(small chunk)的效率，主要是提高内存分配的局部性。那么具体是怎么提高局部性的呢？举例说明。当用户请求一个small chunk，且该请求无法被small bin满足，那么就转而交由unsorted bin处理。同时，假设当前unsorted bin中只有一个chunk的话——就是last remainder chunk，那么就将该chunk分成两部分：前者分配给用户，剩下的部分放到unsorted bin中，并成为新的last remainder chunk。这样就保证了连续malloc(small chunk)中，各个small chunk在内存分布中是相邻的，即提高了内存分配的局部性。
 
+## Reference
+https://jaq.alibaba.com/community/art/show?articleid=315
