@@ -1,4 +1,4 @@
-转载本文请务必注明，文章出处：《[Linux系统调用权威指南](http://www.csyssec.org/20161231/systemcallinternal/)》与作者信息：CSysSec出品
+转载本文请务必注明，文章出处：《[Linux系统调用权威指南](http://www.csyssec.org/20161231/systemcallinternal/)》与作者信息：CSysSec出品  
 文中引用有关glibc 的源代码地址 前缀为 `https://github.molgen.mpg.de/git-mirror/glibc/blob/glibc-2.15/`  
 文中引用有关linux 的源代码地址 前缀为 `https://github.com/torvalds/linux/blob/v3.13/`  
 ## 长话短说(Too long; Don’t read)
@@ -562,7 +562,8 @@ $ echo $?
 
 回想前文，我们知道如何将`system_call` 函数的地址写入`LSTAR MSR` 中。  
  
-下面就来看看这个函数中的代码是如何利用rax寄存器将执行环境切换到系统调用中的。可以参考`arch/x86/kernel/entry_64.S`：  
+下面就来看看这个函数中的代码是如何利用rax寄存器将执行环境切换到系统调用中的。  
+可以参考 `arch/x86/kernel/entry_64.S`：   
 
 `call *sys_call_table(,%rax,8)  # XXX:    rip relative`  
 类似传统系统调用，`sys_call_table` 一张在C文件中定义的表，其利用`#include` 将脚本产生的C代码包含进来。 
