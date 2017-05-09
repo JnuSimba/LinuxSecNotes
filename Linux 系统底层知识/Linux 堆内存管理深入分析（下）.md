@@ -57,11 +57,11 @@ struct malloc_chunk {
 ``` 
 其中的fd和bk指针就是指向当前chunk所属的链表中forward或者backward chunk。  
  
-##　2 Fast bin
+## 2 Fast bin
 
 既然有fast bin，那就肯定有fast chunk——chunk size为16到80字节的chunk就叫做fast chunk。为了便于后文描述，这里对chunk大小做如下约定：  
-1)      只要说到chunk size，那么就表示该malloc_chunk的实际整体大小；  
-2)      而说到chunk unused size，就表示该malloc_chunk中刨除诸如prev_size, size, fd和bk这类辅助成员之后的实际可用的大小。因此，对free chunk而言，其实际可用大小总是比实际整体大小少16字节。  
+1) 只要说到chunk size，那么就表示该malloc_chunk的实际整体大小；  
+2) 而说到chunk unused size，就表示该malloc_chunk中刨除诸如prev_size, size, fd和bk这类辅助成员之后的实际可用的大小。因此，对free chunk而言，其实际可用大小总是比实际整体大小少16字节。  
 
 
 在内存分配和释放过程中，fast bin是所有bin中操作速度最快的。下面详细介绍fast bin的一些特性：
@@ -142,8 +142,8 @@ _int_malloc (mstate av, size_t bytes)
 
 当释放较小或较大的chunk的时候，如果系统没有将它们添加到对应的bins中(为什么，在什么情况下会发生这种事情呢？详情见后文)，系统就将这些chunk添加到unsorted bin中。为什么要这么做呢？这主要是为了让“glibc malloc机制”能够有第二次机会重新利用最近释放的chunk(第一次机会就是fast bin机制)。利用unsorted bin，可以加快内存的分配和释放操作，因为整个操作都不再需要花费额外的时间去查找合适的bin了。
 Unsorted bin的特性如下：  
-1) unsorted bin的个数： 1个。unsorted bin是一个由free chunks组成的循环双链表。  
-2) Chunk size: 在unsorted bin中，对chunk的大小并没有限制，任何大小的chunk都可以归属到unsorted bin中。这就是前言说的特例了，不过特例并非仅仅这一个，后文会介绍。  
+1. unsorted bin的个数： 1个。unsorted bin是一个由free chunks组成的循环双链表。  
+2. Chunk size: 在unsorted bin中，对chunk的大小并没有限制，任何大小的chunk都可以归属到unsorted bin中。这就是前言说的特例了，不过特例并非仅仅这一个，后文会介绍。  
  
 ## 4 Small bin
 
@@ -186,7 +186,7 @@ Large bin的特性如下：
 4) Free(large chunk)：类似于small chunk。  
  
 了解上面知识之后，再结合下图5-1，就不难理解各类bins的处理逻辑了：    
-![](../pictures/heapmanager17.png)   
+![](../pictures/heapmanager17.jpg)   
 
 ## 6 总结
 至此glibc malloc中涉及到的所有显式链表技术已经介绍完毕。鉴于篇幅和精力有限，本文没能详细介绍完所有的技术细节，但是我相信带着这些知识点再去研究glibc malloc的话，定能起到事半功倍的效果。  
