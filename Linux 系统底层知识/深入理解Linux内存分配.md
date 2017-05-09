@@ -21,9 +21,9 @@ CSysSec注： 本文来自Diting0x的个人博客，主要介绍了Linux内核�
 ``` c
 struct mm_struct {
          struct vm_area_struct * mmap;           /* 指向虚拟区间（VMA）链表 */
-         rb_root_t mm_rb;         ／*指向red_black树*/
+         rb_root_t mm_rb;         /*指向red_black树*/
          struct vm_area_struct * mmap_cache;     /* 指向最近找到的虚拟区间*/
-         pgd_t * pgd;             ／*指向进程的页目录*/
+         pgd_t * pgd;             /*指向进程的页目录*/
               atomic_t mm_users;                   /* 用户空间中的有多少用户*/                                     
               atomic_t mm_count;               /* 对"struct mm_struct"有多少引用*/                                     
          int map_count;                        /* 虚拟区间的个数*/
@@ -49,7 +49,8 @@ struct mm_struct {
 了解了这些关联之后，回到最前面，当你写的用户程序在申请内存时(e.g., int i =0; malloc())，注意这里申请的内存还是虚拟内存，可以说是“内存区域”(vm_area_struct)，并非实际物理内存。 这些虚拟内存除了malloc()方式(由专门的brk()系统调用实现)，最终都是通过系统调用mmap来完成的，而mmap系统调用对应的服务例程是do_mmap()函数，有关do_mmap()函数，可参考[do_mmap()](http://lxr.free-electrons.com/source/mm/mmap.c?v=2.6.25#L1843).  
 
 说了这么多用户空间，该把重心来看看内核空间了。  
-用户空间有malloc内存分配函数，内核空间同样有类似的内存分配函数，只是种类多一些(e.g.,*kmalloc/kfree,vmalloc/vfree,kmem_cache_alloc/kmem_cache_free,get_free_page).  
+用户空间有malloc内存分配函数，内核空间同样有类似的内存分配函数，只是种类多一些  
+(e.g., `*kmalloc/kfree,vmalloc/vfree,kmem_cache_alloc/kmem_cache_free,get_free_page`).  
 在具体解释内核空间层的内存分配函数之前，先来看看，物理内存是如何组织的。Linux通过分页机制来管理物理内存，页面是物理内存的基本单位，每个页面占4kB。页面在系统中由struct page结构来描述，而所有的struct page结构体都存储在数组mem_map[]中，因此只要能找到mem_map[]数组的物理地址，就能遍历所有页面的地址。可以来大致看一下struct page*的定义：  
 
 ``` c
@@ -121,7 +122,7 @@ static inline struct page * __alloc_pages_node(int nid, gfp_t gfp_mask, unsigned
 在了解与其它内存分配函数的区别前，先说明下面这个概念  
 
 前文说过3G-4G属于内核空间，然后在内核空间中又有进一步划分。  
-3G~vmalloc_start这段地址是物理内存映射区域，该区域包括了内核镜像，mem_map数组等等。在vmalloc_start~vmalloc_end属于vmalloc区域（vmalloc下文会说),vmalloc_end的位置接近4G(最后系统会保留一片128KB大小的区域专用页面映射). 那这个vmalloc_start的位置又在哪呢？假设我们使用的系统内存是512M,vmalloc_start就在应在3G+512M附近（说”附近”因为是在物理内存映射区与vmalloc_start期间还会存在一个8M大小的gap来防止跃界）.当然实际情况都比这个大，甚至都4G，8G，16G..但我们使用的CPU都是64位的，可寻址空间就不止4G了，这个理论仍然有效。  
+`3G~vmalloc_start`这段地址是物理内存映射区域，该区域包括了内核镜像，mem_map数组等等。在`vmalloc_start~vmalloc_end`属于vmalloc区域（vmalloc下文会说),vmalloc_end的位置接近4G(最后系统会保留一片128KB大小的区域专用页面映射). 那这个vmalloc_start的位置又在哪呢？假设我们使用的系统内存是512M,vmalloc_start就在应在3G+512M附近（说”附近”因为是在物理内存映射区与vmalloc_start期间还会存在一个8M大小的gap来防止跃界）.当然实际情况都比这个大，甚至都4G，8G，16G..但我们使用的CPU都是64位的，可寻址空间就不止4G了，这个理论仍然有效。  
 
 `__get_free_page` 系列函数申请的内存位于物理内存映射区域，在物理上是连续的，注意，函数返回的是虚拟地址，其与物理地址有一个固定的偏移，存在比较简单的转换关系，virt_to_phys()函数做的就是这件事：  
 
