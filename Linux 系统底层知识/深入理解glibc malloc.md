@@ -267,10 +267,10 @@ malloc_chunk 中的其余结构成员，如fd、 bk不用于已分配的chunk，
 空闲chunk：  
 ![](../pictures/glibcmalloc4.png)    
 
-[prev_size](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1110)：两个空闲的chunks不能毗连，当有两个chunks都空闲的时候，他们会合并成一个空闲的chunk，因此前一个chunk和这一个空闲chunk都会被分配，此时prev_size中保存上一个chunk的用户数据。
-[size](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1111)：该结构成员保存本空闲chunk的大小。
-[fd](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1113) ：Forward pointer - 指向同一bin中的下一个chunk（而非物理内存中下一块）。
-[bk](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1114)：Backward pointer – 指向同一bin中的上一个chunk（而非物理内存中上一块）。
+[prev_size](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1110)：两个空闲的chunks不能毗连，当有两个chunks都空闲的时候，他们会合并成一个空闲的chunk，因此前一个chunk和这一个空闲chunk都会被分配，此时prev_size中保存上一个chunk的用户数据。  
+[size](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1111)：该结构成员保存本空闲chunk的大小。  
+[fd](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1113) ：Forward pointer - 指向同一bin中的下一个chunk（而非物理内存中下一块）。  
+[bk](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1114)：Backward pointer – 指向同一bin中的上一个chunk（而非物理内存中上一块）。  
 
 ## 0X05 Bins
 
@@ -292,24 +292,24 @@ Fast Bin：
 大小为[16](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1249) 字节到[80](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1600) 字节的chunk被称为fast chunk，用于保存fast chunk的bins被称为fast bins，在所有的bins中，fast bins分配内存和释放内存的速度都相对较快。  
 
 * bins的数量 - [10](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1680)  
- - 每个fast bin都包含一条free chunk的单链表（称为binlist） ，采用单链表是出于fast bin中chunk不会被从链表的中间移除的特点，增删 chunk都发生在链表的前端。 -LIFO  
+ 1. 每个fast bin都包含一条free chunk的单链表（称为binlist） ，采用单链表是出于fast bin中chunk不会被从链表的中间移除的特点，增删 chunk都发生在链表的前端。 -LIFO  
 
 * chunk大小 - [8字节递增](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1595)  
- - fast bins 包含着大小以8字节递增的bin链表。也即，fast bin(index 0)包含着大小为16字节的chunk的binlist、fast bin(index 1)包含着大小为24字节的chunk的binlist 依次类推……  
- - 指定fast bin中所有chunk大小均相同。  
+ 1. fast bins 包含着大小以8字节递增的bin链表。也即，fast bin(index 0)包含着大小为16字节的chunk的binlist、fast bin(index 1)包含着大小为24字节的chunk的binlist 依次类推……  
+ 2. 指定fast bin中所有chunk大小均相同。  
 
 * [在malloc初始化过程中](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1778)，最大的fast bin的大小被 [设置](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1795) 为64而非80字节。因此默认情况下大小16~64字节的chunk被分类为fast chunk。  
 
 * 不能合并 - 两个毗连的空闲chunk并不会被合并成一个空闲chunk。不合并可能会导致碎片化问题，但是却可以大大加速释放的过程！  
 
 * malloc(fast chunk)  
- - 初始情况下fast bin[最大内存容量](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1765) 以及 [指针域](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1680) 均未初始化，因此即使用户请求fast chunk，服务的也将是 [small bin code](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3330) 而非fast bin code。  
- - 当它非空后，fast bin索引将被 [计算](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3332) 以检索对应的binlist。   
- - binlist中被检索的第一个chunk将被摘除并返回给用户。  
+ 1. 初始情况下fast bin[最大内存容量](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1765) 以及 [指针域](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1680) 均未初始化，因此即使用户请求fast chunk，服务的也将是 [small bin code](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3330) 而非fast bin code。  
+ 2. 当它非空后，fast bin索引将被 [计算](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3332) 以检索对应的binlist。   
+ 3. binlist中被检索的第一个chunk将被摘除并返回给用户。  
 
 * free(fast chunk)  
- - fast bin索引被计算以索引相应binlist。  
- - free掉的chunk将被添加在索引到的binlist的前端。  
+ 1. fast bin索引被计算以索引相应binlist。  
+ 2. free掉的chunk将被添加在索引到的binlist的前端。  
 ![](../pictures/glibcmalloc5.png)   
 
 
@@ -326,39 +326,39 @@ Small Bin：
 小于512字节的chunk被称为small chunk，保存了small chunk的bins被称为small bins。Small bins的内存分配和释放速度都比large bins快（但是比fast bins慢）  
 
 * 数量—62  
- - 每个small bin都包含一个用于保存空闲chunk的双向循环链表，之所以用双向链表是由于在small bin中chunk不能直接从链表的中间位置链接到，free掉的chunk从链表的尾端移除，增加的chunk从链表的链表的前端插入  
+ 1. 每个small bin都包含一个用于保存空闲chunk的双向循环链表，之所以用双向链表是由于在small bin中chunk不能直接从链表的中间位置链接到，free掉的chunk从链表的尾端移除，增加的chunk从链表的链表的前端插入  
 * 大小—8字节递增  
- - samll bins 记录着大小以8字节递增的bin链表。也即，第一个small bin(Bin 2)记录着大小为16字节的chunk的binlist、small bin(Bin 3)记录着大小为24字节的chunk的binlist 依次类推……  
- - 指定samll bin中所有chunk大小均相同，因此无需排序。  
+ 1. samll bins 记录着大小以8字节递增的bin链表。也即，第一个small bin(Bin 2)记录着大小为16字节的chunk的binlist、small bin(Bin 3)记录着大小为24字节的chunk的binlist 依次类推……  
+ 2. 指定samll bin中所有chunk大小均相同，因此无需排序。  
 * 合并 - 两个毗连的空闲chunk会被合并成一个空闲chunk。合并消除了碎片化的影响但是减慢了free的速度。  
 * malloc（small chunk）  
- - 初始情况下，small bin都会是NULL，因此尽管用户请求small chunk，提供服务的将是 unsorted bin code 而不是 small bin code。  
- - 同样地，在第一次调用malloc期间，在malloc_state找到的samll bin和large bin数据结构被初始化，bin都会指向它们本身以表示binlist为空。  
- - 此后当samll bin非空后，相应的bin会摘除binlist中最后一个chunk并返回给用户。  
+ 1. 初始情况下，small bin都会是NULL，因此尽管用户请求small chunk，提供服务的将是 unsorted bin code 而不是 small bin code。  
+ 2. 同样地，在第一次调用malloc期间，在malloc_state找到的samll bin和large bin数据结构被初始化，bin都会指向它们本身以表示binlist为空。  
+ 3. 此后当samll bin非空后，相应的bin会摘除binlist中最后一个chunk并返回给用户。  
 * free（small chunk）  
- - 在free一个chunk的时候，检查其前或其后的chunk是否空闲，若是则合并，也即把它们从所属的链表中摘除并合并成一个新的chunk，新chunk会添加在unsorted bin链表的前端。  
+ 1. 在free一个chunk的时候，检查其前或其后的chunk是否空闲，若是则合并，也即把它们从所属的链表中摘除并合并成一个新的chunk，新chunk会添加在unsorted bin链表的前端。  
 
 Large Bin：  
 大小大于等于512字节的chunk被称为large chunk，保存large chunk的bins被称为large bins，large bins的内存分配和释放速度都比small bins的慢。  
 
 * 数量—63
- - 每个large bin都包括一个空闲chunk的双向循环链表（也称binlist）。free掉的chunk添加在链表的前端，而所需chunk则从链表后端摘除。-FIFO
- - 超过63个bin之后
+ 1. 每个large bin都包括一个空闲chunk的双向循环链表（也称binlist）。free掉的chunk添加在链表的前端，而所需chunk则从链表后端摘除。-FIFO
+ 2. 超过63个bin之后
   	1. 前32个bin记录着大小以64字节递增的bin链表，也即第一个large bin(Bin 65)记录着大小为512字节~568字节的chunk的binlist、第二个large bin(Bin 66)记录着大小为576字节到632字节的chunk的binlist，依次类推……
  	 2. 后16个bin记录着大小以512字节递增的bin链表。
  	 3. 后8个bin记录着大小以4096字节递增的bin链表。
  		 -后4个bin记录着大小以32768字节递增的bin链表。
   		 -后2个bin记录着大小以262144字节递增的bin链表。
   		 -最后1个bin记录着大小为剩余大小的chunk。
- - 不像small bin，large bin 里面的chunk都是大小不一，因此它们需要递减保存，最大的chunk保存在binlist的最前端，最小的chunk保存在最尾端。
+ 3. 不像small bin，large bin 里面的chunk都是大小不一，因此它们需要递减保存，最大的chunk保存在binlist的最前端，最小的chunk保存在最尾端。
 * 合并 - 两个毗连的空闲chunk会被合并成一个空闲chunk。
 malloc（large chunk）
- - 初始情况下，large bin都会是NULL，因此尽管用户请求large chunk，提供服务的将是 next largetst bin code 而不是 large bin code。
- - 同样地，在第一次调用malloc期间，在malloc_state找到的samll bin和large bin数据结构被初始化，bin都会指向它们本身以表示binlist为空。
- - 此后当samll bin非空后，当最大chunk大小（在相应binlist中的）大于用户所请求的大小时，binlist就从顶部遍历到底部以找到一个大小最接近用户需求的chunk。一旦找到，相应chunk就会分成两块
+ 1. 初始情况下，large bin都会是NULL，因此尽管用户请求large chunk，提供服务的将是 next largetst bin code 而不是 large bin code。
+ 2. 同样地，在第一次调用malloc期间，在malloc_state找到的samll bin和large bin数据结构被初始化，bin都会指向它们本身以表示binlist为空。
+ 3. 此后当samll bin非空后，当最大chunk大小（在相应binlist中的）大于用户所请求的大小时，binlist就从顶部遍历到底部以找到一个大小最接近用户需求的chunk。一旦找到，相应chunk就会分成两块
 User chunk（用户请求大小）-返回给用户。
 Remainder chunk（剩余大小） -添加到unsorted bin。
- - 当最大chunk大小（在相应binlist中的）小于用户所请求的大小时，尝试在Next largest bin中查到到所需的chunk以响应用户请求。Next largest bin code会扫描binmaps以找到下一个最大非空bin，如果这样的bin找到了，就从其中的binlist中检索到合适的chunk并返回给用户；反之就使用top chunk以响应用户请求。
+ 4. 当最大chunk大小（在相应binlist中的）小于用户所请求的大小时，尝试在Next largest bin中查到到所需的chunk以响应用户请求。Next largest bin code会扫描binmaps以找到下一个最大非空bin，如果这样的bin找到了，就从其中的binlist中检索到合适的chunk并返回给用户；反之就使用top chunk以响应用户请求。
 * free（large chunk）—类似于small trunk。
 
 Top Chunk:
