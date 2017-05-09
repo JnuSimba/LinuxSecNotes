@@ -845,3 +845,5 @@ Linux内核中的系统调用机制是及其复杂的。触发系统调用有许
 自己编写汇编代码来触发系统调用可不是个好主意，因为在你代码下层的ABI可能会崩溃。系统中的内核以及libc的实现会（可能会）选择最快的方式来触发系统调用。  
 
 如果你不能使用glibc提供的封装器(或者那个封装器不存在)，你起码应该用syscall封装器函数，或者仔细检查vDSO提供的`__kernel_vsyscall`。继续关注将来研究单个系统调用及其实现的相关文章。  
+
+《[Linux(x86)64位系统调用列表](http://www.csyssec.org/20161231/systemcall64list/)》维护了Linux (x86) 64位系统调用表项，源码可以参考 [Sytem call on Linux Cross Reference](http://lxr.linux.no/linux+v3.2/arch/x86/include/asm/unistd_64.h)，亦可参考[这里](https://filippo.io/linux-syscall-table/) 。32位系统调用表项可以参考[这里](http://syscalls.kernelgrok.com/) 。另外，IBM Developworks上维护了一个[32位系统调用的分类](http://www.ibm.com/developerworks/cn/linux/kernel/syscall/part1/appendix.html) 。  
