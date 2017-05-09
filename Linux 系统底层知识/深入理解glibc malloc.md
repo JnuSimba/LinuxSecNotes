@@ -346,10 +346,10 @@ Large Bin：
  2. 超过63个bin之后
   	1. 前32个bin记录着大小以64字节递增的bin链表，也即第一个large bin(Bin 65)记录着大小为512字节~568字节的chunk的binlist、第二个large bin(Bin 66)记录着大小为576字节到632字节的chunk的binlist，依次类推……
  	 2. 后16个bin记录着大小以512字节递增的bin链表。
- 	 3. 后8个bin记录着大小以4096字节递增的bin链表。
- 		 -后4个bin记录着大小以32768字节递增的bin链表。
-  		 -后2个bin记录着大小以262144字节递增的bin链表。
-  		 -最后1个bin记录着大小为剩余大小的chunk。
+ 	 3. 后8个bin记录着大小以4096字节递增的bin链表。  
+ 		 -后4个bin记录着大小以32768字节递增的bin链表。  
+  		 -后2个bin记录着大小以262144字节递增的bin链表。  
+  		 -最后1个bin记录着大小为剩余大小的chunk。  
  3. 不像small bin，large bin 里面的chunk都是大小不一，因此它们需要递减保存，最大的chunk保存在binlist的最前端，最小的chunk保存在最尾端。
 * 合并 - 两个毗连的空闲chunk会被合并成一个空闲chunk。
 malloc（large chunk）
