@@ -10,4 +10,17 @@
     - [Linux 堆内存管理深入分析（上）](./Linux%20系统底层知识/Linux%20堆内存管理深入分析（上）.md)
     - [Linux 堆内存管理深入分析（下）](./Linux%20系统底层知识/Linux%20堆内存管理深入分析（下）.md)
     - [Hook 内核之PVOPS](./Linux%20系统底层知识/Hook%20内核之PVOPS.md)
-    - [深入理解glibc malloc](./Linux%20系统底层知识/深入理解glibc%20malloc.md)
+ 
+* Linux(X86)漏洞利用系列
+	- [经典栈缓冲区溢出](./Linux%20X86%20漏洞利用系列/经典栈缓冲区溢出.md)
+	- [整型溢出](./Linux%20X86%20漏洞利用系列/整型溢出.md)
+	- [栈内off-by-one 漏洞利用](./Linux%20X86%20漏洞利用系列/栈内off-by-one%20漏洞利用.md)
+	- [Unlink堆溢出](./Linux%20X86%20漏洞利用系列/Unlink堆溢出.md)
+	- [Malloc Maleficarum堆溢出](./Linux%20X86%20漏洞利用系列/Malloc%20Maleficarum堆溢出.md)
+	- [堆内off-by-one漏洞利用](./Linux%20X86%20漏洞利用系列/堆内off-by-one漏洞利用.md)
+	- [user-after-free](./Linux%20X86%20漏洞利用系列/user-after-free.md)
+	- [return-to-libc 绕过NX](./Linux%20X86%20漏洞利用系列/return-to-libc%20绕过NX.md)
+	- [Return-to-libc链接绕过NX](./Linux%20X86%20漏洞利用系列/Return-to-libc链接绕过NX.md)
+	- [绕过ASLR-第一篇章（return-to-plt）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第一篇章（return-to-plt）.md)
+	- [绕过ASLR-第二篇章（暴力破解）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第二篇章（暴力破解）.md)
+	- [绕过ASLR-第三篇章（GOT覆盖与GOT解引用）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第三篇章（GOT覆盖与GOT解引用）.md)
