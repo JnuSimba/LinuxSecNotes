@@ -24,3 +24,9 @@
 	- [绕过ASLR-第一篇章（return-to-plt）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第一篇章（return-to-plt）.md)
 	- [绕过ASLR-第二篇章（暴力破解）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第二篇章（暴力破解）.md)
 	- [绕过ASLR-第三篇章（GOT覆盖与GOT解引用）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第三篇章（GOT覆盖与GOT解引用）.md)
+
+* 一步一步学ROP
+	- [Linux x86 篇](./一步一步学ROP/Linux%20x86%20篇.md)
+	- [Linux x64 篇](./一步一步学ROP/Linux%20x84%20篇.md)
+	- [gadgets和2free篇](./一步一步学ROP/gadgets和2free%20篇.md)
+	- [Android ARM 32位篇](./一步一步学ROP/Android%20ARM%2032位篇.md)
