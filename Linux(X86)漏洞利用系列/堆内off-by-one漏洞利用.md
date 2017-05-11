@@ -2,7 +2,7 @@ CSysSec注： 本系列文章译自安全自由工作者Sploitfun的漏洞利用
 转载本文请务必注明，文章出处：《[Linux(X86)漏洞利用系列-Unlink堆溢出)](http://www.csyssec.org/20170104/heap-offbyone)》与作者信息：CSysSec出品  
 
 阅读基础:
-栈内off-by-one漏洞
+栈内off-by-one漏洞  
 [深入理解glibc malloc](../Linux%20系统底层知识/深入理解glibc%20malloc.md)  
 
 VM Setup: Fedora 20(x86)  
@@ -17,10 +17,10 @@ VM Setup: Fedora 20(x86)
 扼要重述：在[这篇]((../Linux%20系统底层知识/深入理解glibc%20malloc.md) 文中说过，堆根据每个用户对堆内存的请求，被分为多个chunk.每个chunk有自己的chunk头部信息(由[malloc_chunk](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1108) 表示)。 结构体malloc_chunk含有以下四个域：    
 
 1. prev_size - 若前一个chunk空闲，则prev_size域包含前一个chunk的大小信息；若前一个chunk已经被分配，则这个域包含前一个chunk的用户数据
-2. size: size域含有这个已经分配的chunk。域的后3比特含有flag信息。
-[PREV_INUSE(P)](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1267)- 当前一个chunk被分配时，此位被设置
-[IS_MMAPPED(M)](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1274)- 当chunk被mmap了，此位被设置。
-[NON_MAIN_ARENA(N)](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1283)- 当这个chunk属于一个线程arena时，此位被设置。
+2. size: size域含有这个已经分配的chunk。域的后3比特含有flag信息。  
+[PREV_INUSE(P)](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1267)- 当前一个chunk被分配时，此位被设置  
+[IS_MMAPPED(M)](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1274)- 当chunk被mmap了，此位被设置。  
+[NON_MAIN_ARENA(N)](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1283)- 当这个chunk属于一个线程arena时，此位被设置。  
 3. fd- 指向同一个bin中的下一个chunk
 4. bk- 指向同一个bin中的前一个chunk
 
@@ -66,7 +66,7 @@ $sudo chown root consolidate_forward
 $sudo chgrp root consolidate_forward
 $sudo chmod +s consolidate_forward
 ```
-注意: 为了更好演示，已经关闭ASLR。如果你也想绕过ASLR，可以利用[这篇文章](http://www.csyssec.org/20170104/useafterfree/)提到的信息泄露漏洞或暴力破解技术 。  
+注意: 为了更好演示，已经关闭ASLR。如果你也想绕过ASLR，可以利用之前文章提到的信息泄露漏洞或暴力破解技术 。  
 
 注：本系列所有文章中第[N]行代码指的的代码中显示`/*[N]*/`的位置。  
 
