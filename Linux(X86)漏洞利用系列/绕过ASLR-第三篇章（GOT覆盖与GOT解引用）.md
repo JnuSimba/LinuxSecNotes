@@ -228,7 +228,7 @@ $
 
 
 
-在似乎没有找到其他方法的时候(至少当我开始学习ROP的时候), [Reno](https://sploitfun.wordpress.com/2015/05/08/bypassing-aslr-part-iii/v0ids3curity.blogspot.in) 教我利用人工ROP gadget搜索来达成目的。多谢！ 继续阅读下去吧！
+在似乎没有找到其他方法的时候(至少当我开始学习ROP的时候), [Reno](http://v0ids3curity.blogspot.in/) 教我利用人工ROP gadget搜索来达成目的。多谢！ 继续阅读下去吧！
 
 ## 0X08 ROP gadget人工搜索
 
