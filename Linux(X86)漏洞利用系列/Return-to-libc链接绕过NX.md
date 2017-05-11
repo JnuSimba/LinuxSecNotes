@@ -53,7 +53,7 @@ $sudo chmod +s vuln
 这项技术不去覆盖返回地址，而是直接覆盖libc函数地址(这个例子中的seteuid函数)，我们采用”leave ret”指令来覆盖。 这让攻击者有机会将函数参数存放在栈中而不必有任何交叉，而且能调用相应的libc函数，并不会带来任何问题。  
 
 栈布局 如下面栈布局所示，帧指针攻击者溢出栈并成功链接libc函数: seteuid, system与exit：  
-![](../pictures/chainreturntolibc2.jpeg)   
+![](../pictures/chainreturntolibc2.png)   
 
 
 
@@ -83,15 +83,15 @@ Main尾声代码:
 如上述栈布局所示，在main函数尾声代码执行之前，攻击者已经溢出栈并用fake_ebp0(0xbffff204)覆盖了main函数的ebp，以及利用”leave ret”指令地址(0x0804851c)覆盖了其返回地址。 现在当CPU要执行main函数的尾声代码时，EIP指向text地址0x0804851c（”leave ret”)。在执行过程中，会发生下面的事情：  
 
 * ‘leave’修改了下面的寄存器
- - esp = ebp = 0xbffff1f8
- - ebp = 0xbffff204, esp = 0xbffff1fc
+ 	- esp = ebp = 0xbffff1f8
+ 	- ebp = 0xbffff204, esp = 0xbffff1fc
 * ‘ret’执行”leave ret”指令(位于栈地址0xbffff1fc处)
 
 seteuid: 现在EIP又重新指向text地址0x0804851c(“leave ret”). 在执行过程中，会发生下面的事情：  
 
 * ‘leave’修改了下面的寄存器
- - esp = ebp = 0xbffff204
- - ebp = 0xbffff214, esp =0xbffff208
+ 	- esp = ebp = 0xbffff204
+ 	- ebp = 0xbffff214, esp =0xbffff208
 * ‘ret’执行seteuis()(位于栈地址0xbffff208). 为了能成功调用seteuid,seteuid_arg必须放在栈地址0xbffff210的偏移量8处(比如seteuid_add）
 * 调用seteuid()后，”leave ret”指令(位于栈地址0xbffff20c处)开始执行
 
