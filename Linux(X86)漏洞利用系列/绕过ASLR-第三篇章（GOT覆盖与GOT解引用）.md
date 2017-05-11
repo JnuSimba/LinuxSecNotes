@@ -224,7 +224,7 @@ $
 太棒了！我们找到了’call *eax’ gadget。 但仍然无法找到gadget 3 ‘pop %eax’ret’ ，GOT解引用依然变得不可能。  
 
 栈布局： 下图描绘了利用gadget链接来做到GOT解引用  
-![](../pictures/alsrgotgor2.png)    
+![](../pictures/aslrgotgor2.png)    
 
 
 
