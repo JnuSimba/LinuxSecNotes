@@ -75,7 +75,8 @@ struct malloc_chunk {
 static INTERNAL_SIZE_T global_max_fast;
  
 /* offset 2 to use otherwise unindexable first 2 bins */
-/*这里SIZE_SZ就是sizeof(size_t)，在32位系统为4，64位为8，fastbin_index就是根据要malloc的size来快速计算该size应该属于哪一个fast bin，即该fast bin的索引。因为fast bin中chunk是从16字节开始的，所有这里以8字节为单位(32位系统为例)有减2*8 = 16的操作！*/
+/*这里SIZE_SZ就是sizeof(size_t)，在32位系统为4，64位为8，fastbin_index就是根据要malloc的size来快速计算该size应该属于哪一个fast bin， 
+即该fast bin的索引。因为fast bin中chunk是从16字节开始的，所有这里以8字节为单位(32位系统为例)有减2*8 = 16的操作！*/
 #define fastbin_index(sz) \
   ((((unsigned int) (sz)) >> (SIZE_SZ == 8 ? 4 : 3)) - 2)
  
@@ -90,8 +91,8 @@ static INTERNAL_SIZE_T global_max_fast;
 a. 首先判断当前malloc_state结构体中的fast bin是否为空，如果为空就说明整个malloc_state都没有完成初始化，需要对malloc_state进行初始化。  
 b. malloc_state的初始化操作由函数malloc_init_state(av)完成，该函数先初始化除fast bin之外的所有的bins(构建双链表，详情见后文small bins介绍)，再初始化fast bins。  
 
-然后当再次执行malloc(fast chunk)函数的时候，此时fast bin相关数据不为空了，就开始使用fast bin(见下面代码中的※1部分)：  
-```
+然后当再次执行malloc(fast chunk)函数的时候，此时fast bin相关数据不为空了，就开始使用fast bin(见下面代码中的// 1 部分)：  
+``` c
 static void *
 _int_malloc (mstate av, size_t bytes)
 {
@@ -104,7 +105,7 @@ _int_malloc (mstate av, size_t bytes)
    //第一次执行malloc(fast chunk)时这里判断为false，因为此时get_max_fast ()为0
    if ((unsigned long) (nb) <= (unsigned long) (get_max_fast ()))
     {
-  ※1  idx = fastbin_index (nb);
+      idx = fastbin_index (nb);  // 1
       mfastbinptr *fb = &fastbin (av, idx);
       mchunkptr pp = *fb;
       do
@@ -113,7 +114,7 @@ _int_malloc (mstate av, size_t bytes)
           if (victim == NULL)
             break;
         }
-   ※2 while ((pp = catomic_compare_and_exchange_val_acq (fb, victim->fd, victim))!= victim);
+      while ((pp = catomic_compare_and_exchange_val_acq (fb, victim->fd, victim))!= victim); // 2
       if (victim != 0)
         {
           if (__builtin_expect (fastbin_index (chunksize (victim)) != idx, 0))
@@ -130,7 +131,7 @@ _int_malloc (mstate av, size_t bytes)
         }
     }
 ```
-得到第一个来自于fast bin的chunk之后，系统就将该chunk从对应的fast bin中移除，并将其地址返回给用户，见上面代码※2处。  
+得到第一个来自于fast bin的chunk之后，系统就将该chunk从对应的fast bin中移除，并将其地址返回给用户，见上面代码//2 处。  
 6) free(fast chunk)操作：这个操作很简单，主要分为两步：先通过chunksize函数根据传入的地址指针获取该指针对应的chunk的大小；然后根据这个chunk大小获取该chunk所属的fast bin，然后再将此chunk添加到该fast bin的链尾即可。整个操作都是在_int_free函数中完成。  
  
 在main arena中Fast bins(即数组fastbinsY)的整体操作示意图如下图所示：  

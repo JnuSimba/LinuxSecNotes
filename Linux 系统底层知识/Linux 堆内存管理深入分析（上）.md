@@ -330,7 +330,7 @@ NON_MAIN_ARENA(N)：表示当前chunk是否是thread arena。
 ![](../pictures/heapmanager14.png)  
 图5-10 当前glibc malloc free chunk格式  
 
-至此，glibc malloc堆内存管理器中使用的隐式链表技术就介绍完毕了。现在我们再回过头去看malloc_chunk结构体就很好理解了：该结构体通过每个chunk的prev_size和size构成了隐式链表，而后续的fd, bk等指针并不是作用于隐式链表的，而是用于后文会介绍的用于加快内存分配和释放效率的显示链表bin(还记得bin么？用于记录同一类型free chunk的链表)，并且这些指针跟prev_size一样只在free chunk中存在。关于显示链表bin的原理比较复杂，让我们带着疑惑，暂时略过这部分信息，等介绍完所有chunk之后再加以详细介绍。  
+至此，glibc malloc堆内存管理器中使用的隐式链表技术就介绍完毕了。现在我们再回过头去看malloc_chunk结构体就很好理解了：该结构体通过每个chunk的prev_size和size构成了隐式链表，而后续的fd, bk等指针并不是作用于隐式链表的，而是用于后文会介绍的用于加快内存分配和释放效率的显式链表bin(还记得bin么？用于记录同一类型free chunk的链表)，并且这些指针跟prev_size一样只在free chunk中存在。关于显式链表bin的原理比较复杂，让我们带着疑惑，暂时略过这部分信息，等介绍完所有chunk之后再加以详细介绍。  
  
 ### 5.2 Top Chunk
 

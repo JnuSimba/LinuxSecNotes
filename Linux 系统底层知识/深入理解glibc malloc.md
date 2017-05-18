@@ -234,7 +234,7 @@ Multiple Arena：
 
 注意：  
 Main arena没有多个堆，因此也没有heap_info这个数据结构，当main arena耗尽空间时，就拓展sbrk’d堆段（连续区域）直至碰到内存mapping区域为止  
-不像thread arena一样，mainarena的arena header并不是sbrk’d堆段的一部分，它是一个 [全局变量](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1740) ，因此它可以在libc.so的数据段中被找到。  
+不像thread arena一样，main arena的arena header并不是sbrk’d堆段的一部分，它是一个 [全局变量](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1740) ，因此它可以在libc.so的数据段中被找到。  
 main arena和thread arena的图示如下（单堆段）：  
 ![](../pictures/glibcmalloc1.png)  
 
@@ -250,8 +250,8 @@ thread arena的图示如下（多堆段）：
 * Free chunk  
 * Top chunk  
 * Last Remainder chunk  
-* Allocated chunk  
-已分配的chunk    
+
+已分配的chunk：      
 ![](../pictures/glibcmalloc3.png)   
 
 [prev_size](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1110) ：若上一个chunk可用，则此结构成员赋值为上一个chunk的大小；否则若上一个chunk被分配，此结构成员赋值为上一个chunk的用户数据大小。  
