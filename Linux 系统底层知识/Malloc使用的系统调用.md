@@ -140,8 +140,16 @@ b7e21000-b7e22000 rw-p 00000000 00:00 0
 sploitfun@sploitfun-VirtualBox:~/ptmalloc.ppt/syscalls$
 ```
 mmap之后：在下面的输出中，我们可以观察到我们的内存映射段（b7e00000 - b7e21000，大小为132KB）与已有的内存映射段（b7e21000 - b7e22000）结合了   
-
-在这里   
+```
+sploitfun@sploitfun-VirtualBox:~/ptmalloc.ppt/syscalls$ cat /proc/6067/maps
+08048000-08049000 r-xp 00000000 08:01 539691     /home/sploitfun/ptmalloc.ppt/syscalls/mmap
+08049000-0804a000 r--p 00000000 08:01 539691     /home/sploitfun/ptmalloc.ppt/syscalls/mmap
+0804a000-0804b000 rw-p 00001000 08:01 539691     /home/sploitfun/ptmalloc.ppt/syscalls/mmap
+b7e00000-b7e22000 rw-p 00000000 00:00 0 
+...
+sploitfun@sploitfun-VirtualBox:~/ptmalloc.ppt/syscalls$
+```
+在这里    
 b7e00000-b7e22000是这个堆段的虚拟地址范围  
 rw-p代表权限（读，写，不可执行，私有）  
 00000000代表文件偏移量——由于它不是从其它文件映射而来，所以就为0  
