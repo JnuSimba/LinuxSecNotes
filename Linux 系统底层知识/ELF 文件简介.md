@@ -18,6 +18,7 @@ ELF文件格式是一个开放标准，各种UNIX系统的可执行文件都采�
 
 ELF格式提供了两种不同的视角，链接器把ELF文件看成是Section的集合，而加载器把ELF文件看成是Segment的集合。如下图所示。  
 ![](../pictures/asm.elfoverview.png)  
+![](../pictures/ELFview.png)   
 图 ELF文件
 
 ## ELF文件  
@@ -613,7 +614,24 @@ int main(void)
  80484bc:	e8 17 ff ff ff       	call   80483d8 <push@plt>
 ...
 ```
-和链接静态库不同，push函数没有链接到可执行文件中。而且`call 80483d8 <push@plt>`这条指令调用的也不是push函数的地址。共享库是位置无关代码，在运行时可以加载到任意地址，其加载地址只有在动态链接时才能确定，所以在main函数中不可能直接通过绝对地址调用push函数，也是通过间接寻址来找push函数的。对照着上面的指令，我们用gdb跟踪一下：  
+
+在链接静态库时，链接器会把静态库中的目标文件取出来和可执行文件真正链接在一起。  
+```
+$ objdump -d main
+...
+08048394 <main>:
+ 8048394:       8d 4c 24 04             lea    0x4(%esp),%ecx
+ 8048398:       83 e4 f0                and    $0xfffffff0,%esp
+ 804839b:       ff 71 fc                pushl  -0x4(%ecx)
+...
+080483c0 <push>:
+ 80483c0:       55                      push   %ebp
+ 80483c1:       89 e5                   mov    %esp,%ebp
+ 80483c3:       83 ec 04                sub    $0x4,%esp
+```
+和链接静态库不同，这里的 push函数没有链接到可执行文件中。  
+
+而且`call 80483d8 <push@plt>`这条指令调用的也不是push函数的地址。共享库是位置无关代码，在运行时可以加载到任意地址，其加载地址只有在动态链接时才能确定，所以在main函数中不可能直接通过绝对地址调用push函数，也是通过间接寻址来找push函数的。对照着上面的指令，我们用gdb跟踪一下：  
 ```
 $ gdb main
 ...
@@ -664,3 +682,4 @@ Current language:  auto; currently c
 
 ## Reference
 https://akaedu.github.io/book/ch18s05.html
+http://sploitfun.blogspot.in/
