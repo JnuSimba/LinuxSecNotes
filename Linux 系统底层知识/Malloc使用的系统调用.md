@@ -66,6 +66,20 @@ sploitfun@sploitfun-VirtualBox:~/ptmalloc.ppt/syscalls$
 > start_brk=end_data=0x804b000
 > brk=0x804c000
 
+```
+sploitfun@sploitfun-VirtualBox:~/ptmalloc.ppt/syscalls$ ./sbrk 
+Welcome to sbrk example:6141
+Program Break Location1:0x804b000
+Program Break Location2:0x804c000
+...
+sploitfun@sploitfun-VirtualBox:~/ptmalloc.ppt/syscalls$ cat /proc/6141/maps
+...
+0804a000-0804b000 rw-p 00001000 08:01 539624     /home/sploitfun/ptmalloc.ppt/syscalls/sbrk
+0804b000-0804c000 rw-p 00000000 00:00 0          [heap]
+b7e21000-b7e22000 rw-p 00000000 00:00 0 
+...
+sploitfun@sploitfun-VirtualBox:~/ptmalloc.ppt/syscalls$
+```
 在这  
 0804b000-0804c000是这个堆段的虚拟地址范围  
 rw-p是权限（读，写，不可执行，私有）  
