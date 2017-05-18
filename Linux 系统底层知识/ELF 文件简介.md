@@ -658,3 +658,6 @@ Current language:  auto; currently c
 0xb803f47c <push>:	0x53e58955
 ```
 动态链接器已经把push函数的地址存在这里了，所以下次再调用push函数就可以直接从jmp *0x804a008指令跳到它的地址，而不必再进入/lib/ld-linux.so.2做动态链接了。   
+
+## Reference
+https://akaedu.github.io/book/ch18s05.html
