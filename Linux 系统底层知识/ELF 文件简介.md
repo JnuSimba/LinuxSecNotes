@@ -680,6 +680,17 @@ Current language:  auto; currently c
 ```
 动态链接器已经把push函数的地址存在这里了，所以下次再调用push函数就可以直接从jmp *0x804a008指令跳到它的地址，而不必再进入/lib/ld-linux.so.2做动态链接了。   
 
+## x86 寻址
+x86 的内存寻址在指令中可以表示成如下的通用格式:  
+
+`ADDRESS_OR_OFFSET(%BASE_OR_OFFSET,%INDEX,MULTIPLIER)`  
+
+它所表示的地址可以这样计算出来:  
+
+`FINAL ADDRESS = ADDRESS_OR_OFFSET + BASE_OR_OFFSET + MULTIPLIER * INDEX`  
+
+注：实际上 final address 也只是逻辑地址中的32位偏移量部分，需要使用段选择符(CS寄存器）找到段描述符，进而得到段基地址，两者相加才是线性地址，但在**Linux实现中段基地址都为0**，故偏移量可以直接当作线性地址，再经过分页转换就是真正的物理地址，也就是说final address 是程序中访问的地址。  
+
 ## Reference
 https://akaedu.github.io/book/ch18s05.html  
 http://sploitfun.blogspot.in/
