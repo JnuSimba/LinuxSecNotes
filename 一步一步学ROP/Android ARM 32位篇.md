@@ -183,7 +183,7 @@ $ ROPgadget --binary=./level7 --thumb | grep "ldr r0"
 ```
 在这些gadgets中，我们成功找到了一个gadget可以符合我们的要求：  
 
-`0x0000894a : ldr r0, [sp, #0xc] ; add sp, #0x14 ; pop {pc}`
+`0x0000894a : ldr r0, [sp, #0xc] ; add sp, #0x14 ; pop {pc}`  
 接下来就是找system和"/system/bin/sh"的地址，分别为0x00008404和000096C0：  
 
 
@@ -384,7 +384,7 @@ vulnerable_function();
 
 另外需要注意的是write()函数是三个参数，因此我们还需要控制r1和r2才行，刚好程序中有如下gadget可以满足我们的需求：  
 
-`#0x0000863a : pop {r1, r2, r4, r5, r6, pc}`
+`#0x0000863a : pop {r1, r2, r4, r5, r6, pc}`  
 另外为了能再一次返回vulnerable_function()，我们需要构造好执行完write函数后的栈的数据，让程序执行完ADD SP, SP,#0x84;POP {PC}后，PC能再一次指向0x000084D8。  
 
 

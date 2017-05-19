@@ -595,4 +595,3 @@ p.send(payload1)
 ## 0x07 参考资料
 
 [64位Linux下的栈溢出](http://packetstormsecurity.com/files/download/127007/64bit-overflow.pdf)    
-[Week4-bigdata-丘比龙版银河系最详细Writeup!](https://blog.leoc.io/blog/20140414/week4-bigdata-writeup/)
