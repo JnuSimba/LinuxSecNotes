@@ -7,6 +7,7 @@
 	- [Linux 函数堆栈调用](./Linux%20系统底层知识/Linux%20函数堆栈调用.md)
 	- [Linux 栈溢出保护机制](./Linux%20系统底层知识/Linux%20栈溢出保护机制.md)
 	- [Linux 系统调用权威指南](./Linux%20系统底层知识/Linux%20系统调用权威指南.md)
+	- [反调试与反反调试](./Linux%20系统底层知识/反调试与反反调试.md)
     - [Malloc使用的系统调用](./Linux%20系统底层知识/Malloc使用的系统调用.md)
     - [深入理解glibc malloc](./Linux%20系统底层知识/深入理解glibc%20malloc.md)
     - [深入理解Linux内存分配](./Linux%20系统底层知识/深入理解Linux内存分配.md)
