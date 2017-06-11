@@ -646,7 +646,7 @@ main () at main.c:7
 0x080483d8 in push@plt ()
 Current language:  auto; currently asm
 ```
-跳转到.plt段中，现在将要执行一条`jmp *0x804a008`指令，我们看看0x804a008这个地址里存的是什么：  
+跳转到.plt段中，现在将要执行一条`jmp *0x804a008`（0x804a008地址上的值作为地址进行跳转，类似地 `jmp  *%eax`  is AT&T syntax for jmp eax, which is one form of jmp r/m32. It will jump to the address contained in register eax）指令，我们看看0x804a008这个地址里存的是什么：  
 ```
 (gdb) x 0x804a008
 0x804a008 <_GLOBAL_OFFSET_TABLE_+20>:	0x080483de
