@@ -274,7 +274,7 @@ Dump of assembler code for function main:
 求助：如果在创建栈内容之前ESP边界已经对齐为16字节的话该怎么办？这种情况下，即使程序以gcc默认的16字节栈边界编译，按理来说“EBP覆盖”法也是可以用的。但是我一直都写不出有效代码。在我所有的试运行程序中，创建栈空间之前，ESP边界都没有对齐16字节。但是不管我多么小心地创建栈内容，gcc总是给本地变量添加额外空间，这样ESP边界就不能对齐16字节。如果任何人有有效代码或者知道为什么ESP总是无法对齐，麻烦告诉我！拜托了！  
 
 ## 0x05 编者注
-按照文章的思路，测试时找到的返回空间地址与buf 起始地址偏移是 60个字节，如下所示，需要覆盖的ebp 是 0xbffff4d4，需要覆盖的返回空间地址是 0xbffff404，poc 设置返回地址是 0xbffff408，即 60 + 返回地址 + 147 nop + 45 shellcode = 256  
+按照文章的思路，测试时找到的返回空间地址（0xbffff404）与buf 起始地址（0xbffff3c8）偏移是 60个字节，如下所示，需要覆盖的ebp 是 0xbffff4d4，需要覆盖的返回空间地址是 0xbffff404，poc 设置返回地址是 0xbffff408，即 60 + 返回地址 + 147 nop + 45 shellcode = 256  
 ```
 (gdb) r `python -c 'print "A"*60+"B"*4+"C"*192'`
 The program being debugged has been started already.
