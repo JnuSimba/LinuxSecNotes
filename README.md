@@ -21,6 +21,7 @@
 	- [整型溢出](./Linux%20X86%20漏洞利用系列/整型溢出.md)
 	- [栈内off-by-one 漏洞利用](./Linux%20X86%20漏洞利用系列/栈内off-by-one%20漏洞利用.md)
 	- [Unlink堆溢出](./Linux%20X86%20漏洞利用系列/Unlink堆溢出.md)
+	- [Double Free 浅析](./Linux%20X86%20漏洞利用系列/Double%20Free%20浅析.md)  
 	- [Malloc Maleficarum堆溢出](./Linux%20X86%20漏洞利用系列/Malloc%20Maleficarum堆溢出.md)
 	- [堆内off-by-one漏洞利用](./Linux%20X86%20漏洞利用系列/堆内off-by-one漏洞利用.md)
 	- [user-after-free](./Linux%20X86%20漏洞利用系列/user-after-free.md)

@@ -1,5 +1,5 @@
-
-0x00简介
+原文 by explorer  
+## 0x00 简介
 
 Double Free其实就是同一个指针free两次。虽然一般把它叫做double free，其实只要是free一个指向堆内存的指针都有可能产生可以利用的漏洞。  
 
@@ -58,7 +58,7 @@ struct malloc_chunk {
 `set_foot(p, size);`
 宏定义的非常彻底，所以也要宏展开再看  
 
-`(((mchunkptr) ((char *) (p) + (size)))->prev_size = (size))` 
+`(((mchunkptr) ((char *) (p) + (size)))->prev_size = (size))`   
 把下一个内存块的prev_size更改为当前内存块，或者是已经合并了的更大内存块的大小。然后就是一些各种各样的别的操作，就不详细解释了。  
 
 最后来仔细看看unlink的宏代码 直接把unlink宏内容贴出来  
@@ -135,12 +135,12 @@ if (__builtin_expect (FD->bk != P || BK->fd != P, 0))
 现在的chunk就是这个样子了  
 ![](../pictures/heapdoublefree3.jpg)      
 
-可以看到现在我们在内存中伪造了出了２个chunk。它们的结构就像图中我们看到的样子。首先是第一个chunk的chunk头部分。我们分别填上了0x０和0x1f9代表了前一个chunk正在使用，当前chunk的大小是１f8。然后就是伪造的双向链表指针了。为了绕过unlink中的检查，这里需要稍微构造一下这个双向链表的指针了。payload中的0x0804bfc0位置其实就是存放在.data段中的指针ptr。这样子就可以绕过保护了。  
+可以看到现在我们在内存中伪造了出了2个chunk。它们的结构就像图中我们看到的样子。首先是第一个chunk的chunk头部分。我们分别填上了0x0和0x1f9代表了前一个chunk正在使用，当前chunk的大小是１f8。然后就是伪造的双向链表指针了。为了绕过unlink中的检查，这里需要稍微构造一下这个双向链表的指针了。payload中的0x0804bfc0位置其实就是存放在.data段中的指针ptr。这样子就可以绕过保护了。  
 ``` c
 if (__builtin_expect (FD->bk != P || BK->fd != P, 0))
    malloc_printerr (check_action, "corrupted double-linked list", P, AV);
 ```
-结合而源代码，可以看到现在FD->bk的值正好也是指向我们伪造的chunk的头部分。然后我们在野指针ｐ的前面又伪造了一个chunk头。prve_size部分填0x1f8正好是前一个伪造chunk的大小。然后size部分填的是0x108。这样的话两个chunk正将我们申请的空间填满。然后第二个伪造chunk的size中最低位的flag置为０．这样free指针ｐ的时候，就会将前一个伪造的chunk给unlink。  
+结合而源代码，可以看到现在FD->bk的值正好也是指向我们伪造的chunk的头部分。然后我们在野指针ｐ的前面又伪造了一个chunk头。prve_size部分填0x1f8正好是前一个伪造chunk的大小。然后size部分填的是0x108。这样的话两个chunk正将我们申请的空间填满。然后第二个伪造chunk的size中最低位的flag置为0．这样free指针ｐ的时候，就会将前一个伪造的chunk给unlink。  
 
 现在，只要在free一次指针p，就可以触发漏洞了。这时候，我们的操作系统不会报错，而且我们本来正常的指针ptr已经变成了ptr-0xc。这要如果我们如果调用Edit函数来修改这个chunk的话，就可以干各种各样的事情了。  
 
