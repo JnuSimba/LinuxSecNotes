@@ -44,7 +44,7 @@ PS: 鉴于篇幅，这里主要介绍非mmaped的chunks的回收机制，回想�
 一旦涉及到free内存，那么就意味着有新的chunk由allocated状态变成了free状态，此时glibc malloc就需要进行合并操作——向前以及(或)向后合并。这里所谓向前向后的概念如下：将previous free chunk合并到当前free chunk，叫做向后合并；将后面的free chunk合并到当前free chunk，叫做向前合并。    
 
 #### 一、向后合并
-相关代码如下：
+相关代码如下：  
 ![](../pictures/heapunlink1.JPG)   
  
 首先检测前一个chunk是否为free，这可以通过检测当前free chunk的PREV_INUSE(P)比特位知晓。在本例中，当前chunk（first chunk）的前一个chunk是allocated的，因为在默认情况下，堆内存中的第一个chunk总是被设置为allocated的，即使它根本就不存在。  
@@ -98,7 +98,7 @@ PS：在本例中next chunk即second chunk，为了便于理解后文统一用ne
 3)再将BK赋值给FD->bk，即（free地址– 12）->bk = shellcode起始地址；  
 4)最后将FD赋值给BK->fd，即(shellcode起始地址)->fd = free地址– 12。  
 前面两步还好理解，主要是后面2步比较迷惑。我们作图理解：  
-![](../pictures/heapunlink5.JPG)  
+![](../pictures/heapunlink5.png)  
 
 结合上图就很好理解第3，4步了。细心的朋友已经注意到，free addr -12和shellcode addr对应的prev_size等字段是用虚线标记的，为什么呢？因为事实上它们对应的内存并不是chunk header，只是在我们的攻击中需要让glibc malloc在进行unlink操作的时候将它们强制看作malloc_chunk结构体。这样就很好理解为什么要用free addr – 12替换next chunk的fd了，因为(free addr -12)->bk刚好就是free addr，也就是说第3步操作的结果就是将free addr处的数据替换为shellcode的起始地址。  
 
