@@ -40,13 +40,13 @@ Unlink: 其主要思想是欺骗’glibc malloc’来达到解开(unlink) ‘sec
 
 如果没有攻击中的影响，第[4]行中的[free](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c) 会做下面这些事情：  
 
-* 对于 [没有被映射的chunks](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L10)  来说，向后合并(consolidate banckward)或者向前合并(consolidate forward)。  
+* 对于 [没有被mmap映射的chunks](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L10)  来说，向后合并(consolidate banckward)或者向前合并(consolidate forward)。  
 * 向后合并：
 	- [查找前一个chunk是否空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L17) - 如果当前被释放的chunk的PREV_INUSE(P)位没有设置，则说明前一个chunk是空闲的。在我们的例子中，由于“first”的PREV_INUSE位已经设置，说明前一个chunk已经被分配了，默认情况下，堆内存的第一个chunk的前一个chunk被分配(尽管它不存在)。
-	- [如果空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L18) ，则合并 比如，从binlist上unlink(移除)前一个chunk，然后将前一个chunk的大小加到当前大小中并修改chunk指针指向前一个chunk。在我们的例子中，前一个chunk已经被分配了，因此unlink没有执行。从而当前被释放的chunk ‘first’不能被向后合并。
+	- [如果空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L18) ，则合并 比如，从binlist上unlink(移除)前一个chunk，然后将前一个chunk的大小加到当前大小中并修改chunk”指针“指向前前一个chunk。在我们的例子中，前一个chunk已经被分配了，因此unlink没有执行。从而当前被释放的chunk ‘first’不能被向后合并。
 * 向前合并:
-	- [查找下一个chunk是否空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L26) - 如果下下个chunk(从当前被释放的chunk算起)的PREV_INUSE(P)位没有设置，则shuoming 说明下前一个chunk是空闲的。为了遍历到下下个chunk，将当前被释放chunk的大小加入到chunk指针，然后将下一个chunk的大小加入到下一个chunk指针。在我们的例子中，当前被释放chunk的下下个指针是top chunk，并且它的PREV_INUSE位已经设置，说明下一个chunk ‘second’不是空闲的。
-	- [如果空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L30) ，则合并 比如，从binlist上unlink(移除)前一个chunk,然后将下一个chunk的大小加到当前大小中。在我们的例子中，下一个chunk已经被分配了，因此unlink没有执行。从而当前被释放的chunk ‘first’不能被向前合并。
+	- [查找下一个chunk是否空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L26) - 如果下下个chunk(从当前被释放的chunk算起)的PREV_INUSE(P)位没有设置，则说明下前一个chunk是空闲的。在我们的例子中，当前被释放chunk的下下个指针是top chunk，并且它的PREV_INUSE位已经设置，说明下一个chunk ‘second’不是空闲的。
+	- [如果空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L30) ，则合并 比如，从binlist上unlink(移除)下一个chunk,然后将下一个chunk的大小加到当前大小中，并修改下下个chunk的pre_size字段。在我们的例子中，下一个chunk已经被分配了，因此unlink没有执行。从而当前被释放的chunk ‘first’不能被向前合并。
 * 现在，[将被合并的chunk添加到未排序的bin中](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L41) 。在我们的例子中，合并未能成功执行，所以只要将’first’ chunk添加到未排序的bin中。 
  
 现在我们可以说攻击者在第[3]行按照以下方式覆盖了’second’ chunk的chunk头部：  
