@@ -216,7 +216,7 @@ if (__builtin_expect (FD->bk != P || BK->fd != P, 0))
 [RELRO(ReLocation Read-Only)](https://isisblogs.poly.edu/2011/06/01/relro-relocation-read-only/) 
 
 ## 4. 另一种unlink攻击技术
-经过上述3层安全检测，是否意味着所有unlink技术都失效了呢？答案是否定的，因为进行漏洞攻击的人脑洞永远比天大！之前刚好看到一篇好文(强烈推荐)，主讲在Android4.4上利用unlink机制实现堆溢出攻击。众所周知，Android内核基于linux，且其堆内存管理也是使用的glibc malloc，虽然在一些细节上有些许不同，但核心原理类似。该文介绍的攻击方式就成功绕过了上述三层检测。  
+经过上述3层安全检测，是否意味着所有unlink技术都失效了呢？答案是否定的，因为进行漏洞攻击的人脑洞永远比天大！之前刚好看到一篇[好文](https://github.com/JnuSimba/AndroidSecNotes/blob/master/Android%E7%B3%BB%E7%BB%9F%E5%AE%89%E5%85%A8/Android%20%E4%B8%AD%E5%A0%86unlink%20%E5%88%A9%E7%94%A8%E5%AD%A6%E4%B9%A0.md)(强烈推荐)，主讲在Android4.4上利用unlink机制实现堆溢出攻击。众所周知，Android内核基于linux，且其堆内存管理也是使用的glibc malloc，虽然在一些细节上有些许不同，但核心原理类似。该文介绍的攻击方式就成功绕过了上述三层检测。  
 
 ## 参考
 
