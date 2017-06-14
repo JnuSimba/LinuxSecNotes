@@ -5,7 +5,7 @@ CSysSec注： 本系列文章译自安全自由工作者Sploitfun的漏洞利用
 
 chunk是指具体进行内存分配的区域，目前的默认大小是4M。   
 
-## 阅读基础
+## 1. 阅读基础
 
 [深入理解glibc malloc](../Linux%20系统底层知识/深入理解glibc%20malloc.md)  
 
@@ -35,43 +35,81 @@ int main( int argc, char * argv[] )
 
 ![](../pictures/heapoverflow1.png)   
 
+## 2. unlink技术原理
+### 2.1 基本知识介绍
+unlink攻击技术就是利用”glibc malloc”的内存回收机制，将上图中的second chunk给unlink掉，并且，在unlink的过程中使用shellcode地址覆盖掉free函数(或其他函数也行)的GOT表项。这样当程序后续调用free函数的时候(如上面代码[5])，就转而执行我们的shellcode了。显然，核心就是理解glibc malloc的free机制。  
 
-Unlink: 其主要思想是欺骗’glibc malloc’来达到解开(unlink) ‘second’ chunk的目的。当解开(unlinking) 时，free函数的GOT表项就会被shellcode的地址覆盖。 成功覆盖之后，在漏洞代码中第五行当free被调用时，shellcode就会被执行。还不清楚？没问题，我们先来看看当free执行的时候’glibc malloc’都做了些什么。 
+在正常情况下，free的执行流程如下文所述：  
+PS: 鉴于篇幅，这里主要介绍非mmaped的chunks的回收机制，回想一下在哪些情况下使用mmap分配新的chunk，哪些情况下不用mmap？  
+一旦涉及到free内存，那么就意味着有新的chunk由allocated状态变成了free状态，此时glibc malloc就需要进行合并操作——向前以及(或)向后合并。这里所谓向前向后的概念如下：将previous free chunk合并到当前free chunk，叫做向后合并；将后面的free chunk合并到当前free chunk，叫做向前合并。    
 
-如果没有攻击中的影响，第[4]行中的[free](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c) 会做下面这些事情：  
-
-* 对于 [没有被mmap映射的chunks](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L10)  来说，向后合并(consolidate banckward)或者向前合并(consolidate forward)。  
-* 向后合并：
-	- [查找前一个chunk是否空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L17) - 如果当前被释放的chunk的PREV_INUSE(P)位没有设置，则说明前一个chunk是空闲的。在我们的例子中，由于“first”的PREV_INUSE位已经设置，说明前一个chunk已经被分配了，默认情况下，堆内存的第一个chunk的前一个chunk被分配(尽管它不存在)。
-	- [如果空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L18) ，则合并 比如，从binlist上unlink(移除)前一个chunk，然后将前一个chunk的大小加到当前大小中并修改chunk”指针“指向前前一个chunk。在我们的例子中，前一个chunk已经被分配了，因此unlink没有执行。从而当前被释放的chunk ‘first’不能被向后合并。
-* 向前合并:
-	- [查找下一个chunk是否空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L26) - 如果下下个chunk(从当前被释放的chunk算起)的PREV_INUSE(P)位没有设置，则说明下前一个chunk是空闲的。在我们的例子中，当前被释放chunk的下下个指针是top chunk，并且它的PREV_INUSE位已经设置，说明下一个chunk ‘second’不是空闲的。
-	- [如果空闲](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L30) ，则合并 比如，从binlist上unlink(移除)下一个chunk,然后将下一个chunk的大小加到当前大小中，并修改下下个chunk的pre_size字段。在我们的例子中，下一个chunk已经被分配了，因此unlink没有执行。从而当前被释放的chunk ‘first’不能被向前合并。
-* 现在，[将被合并的chunk添加到未排序的bin中](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_free_snip.c#L41) 。在我们的例子中，合并未能成功执行，所以只要将’first’ chunk添加到未排序的bin中。 
+#### 一、向后合并
+相关代码如下：
+![](../pictures/heapunlink1.JPG)   
  
-现在我们可以说攻击者在第[3]行按照以下方式覆盖了’second’ chunk的chunk头部：  
+首先检测前一个chunk是否为free，这可以通过检测当前free chunk的PREV_INUSE(P)比特位知晓。在本例中，当前chunk（first chunk）的前一个chunk是allocated的，因为在默认情况下，堆内存中的第一个chunk总是被设置为allocated的，即使它根本就不存在。  
 
-* prev_size = 偶数，因此PREV_INUSE没有被设置
-* size = -4
-* fd = free地址 -12
-* bk = shellcode地址
+如果为free的话，那么就进行向后合并：  
+1)将前一个chunk占用的内存合并到当前chunk;  
+2)修改指向当前chunk的指针，改为指向前一个chunk。  
+3)使用unlink宏，将前一个free chunk从双向循环链表中移除(这里最好自己画图理解，学过数据结构的应该都没问题)。  
+在本例中由于前一个chunk是allocated的，所以并不会进行向后合并操作。  
 
-如果受到攻击者的影响，第[4]行中的free会做以下事情：  
+### 二、向前合并操作
+首先检测next chunk是否为free。那么如何检测呢？很简单，查询next chunk之后的chunk的PREV_INUSE (P)即可。相关代码如下：  
+![](../pictures/heapunlink2.JPG)   
 
-* 对于没有被映射的chunks来说，向后合并(consolidate banckward)或者向前合并(consolidate forward)。
-* 向后合并：
-	- 查找前一个chunk是否空闲- 如果当前被释放的chunk的PREV_INUSE(P)位没有设置，则shuoming 说明前一个chunk是空闲的。在我们的例子中，由于“first”的PREV_INUSE位已经设置，说明前一个chunk已经被分配了，默认情况下，堆内存的第一个chunk前一个chunk被分配(尽管它不存在)。
-	- 如果空闲，则合并 比如，从binlist上unlink(移除)前一个chunk,然后将前一个chunk的大小加到当前大小中并修改chunk指针指向前一个chunk。在我们的例子中，前一个chunk已经被分配了，因此unlink没有执行。从而当前被释放的chunk ‘first’不能被向后合并。
-* 向前合并:
-	- 查找下一个chunk是否空闲- 如果下下个chunk(从当前被释放的chunk算起)的PREV_INUSE(P)位没有设置，则说明下前一个chunk是空闲的。为了遍历到下下个chunk，将当前被释放chunk的大小加入到chunk指针，然后将下一个chunk的大小加入到下一个chunk指针。在我们的例子中，当前被释放chunk的下下个指针不是(NOT)top chunk。由于攻击者已经用-4覆盖了’second’ chunk的大小，’second’ chunk的下下个chunk应该在-4偏移处。因此，现在’glibc malloc’将’second’ chunk的prev_inuse当做下下个chunk的大小域。由于攻击者已经用一个偶数(PREV_INUSE(P)位被复位)覆盖了prev_size，这样就欺骗了’glibc malloc’ 让其相信’second’ chunk是释放的。
-	- 如果空闲，则合并] 比如，从binlist上unlink(移除)前一个chunk,然后将下一个chunk的大小加到当前大小中。在我们的例子中，下一个chunk是空闲的，因此’second’ chunk将按以下方式[unlink](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_unlink_snip.c)。
-		1. 将'second' chunk的fd和bk值相应的拷贝到[FD](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_unlink_snip.c#L3)与[BK](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_unlink_snip.c#L4)变量。在我们例子中，FD =free地址-12， BK=shellcode地址 (作为堆溢出的一部分，攻击者将shellcode放入'first'堆缓冲区内部）。
-		2. [BK的值被拷贝到FD的12偏移处](https://github.com/sploitfun/lsploits/blob/master/hof/unlink/malloc_unlink_snip.c#L5)。在我们的例子中，将12字节加入到FD中，然后指向free的GOT表项。这样一来，GOT表项就被shellcode的地址覆盖了。太棒了！现在，任何时候只要free被调用，就会执行shellcode! 因此，漏洞程序中的第五行就会导致shellcode的执行。  
-* 现在，将被合并的chunk添加到未排序的bin中。
+整个操作与”向后合并“操作类似，再通过上述代码结合注释应该很容易理解free chunk的向前结合操作。在本例中当前chunk为first，它的下一个chunk为second，再下一个chunk为top chunk，此时top chunk的 PREV_INUSE位是设置为1的(表示top chunk的前一个chunk，即second chunk,已经使用)，因此first的下一个chunk不会被“向前合并“掉。  
+   
+介绍完向前、向后合并操作，下面就需要了解合并后(或因为不满足合并条件而没合并)的chunk该如何进一步处理了。在glibc malloc中，会将合并后的chunk放到unsorted bin中(还记得unsorted bin的含义么？)。相关代码如下：  
+![](../pictures/heapunlink3.JPG)  
+ 
 
-被攻击者修改过的用户输入，漏洞程序的堆内存的形象图如下：  
+上述代码完成的整个过程简要概括如下：将当前chunk插入到unsorted bin的第一个chunk(第一个chunk是链表的头结点，为空)与第二个chunk之间(真正意义上的第一个可用chunk)；然后通过设置自己的size字段将前一个chunk标记为已使用；再更改后一个chunk的prev_size字段，将其设置为当前chunk的size。  
+
+注意：上一段中描述的”前一个“与”后一个“chunk，是指的由chunk的prev_size与size字段隐式连接的chunk，即它们在内存中是连续、相邻的！而不是通过chunk中的fd与bk字段组成的bin(双向链表)中的前一个与后一个chunk，切记！    
+
+在本例中，只是将first chunk添加到unsorted bin中。  
+
+### 2.2 开始攻击
+现在我们再来分析如果一个攻击者在代码[3]中精心构造输入数据并通过strcpy覆盖了second chunk的chunk header后会发生什么情况。  
+
+假设被覆盖后的chunk header相关数据如下：  
+1) prev_size =一个偶数，这样其PREV_INUSE位就是0了，即表示前一个chunk为free。  
+2) size = -4  
+3) fd = free函数的got表地址address – 12；(后文统一简称为“free addr – 12”)  
+4) bk = shellcode的地址  
+
+那么当程序在[4]处调用free(first)后会发生什么呢？我们一步一步分析。  
+一、向后合并  
+鉴于first的前一个chunk非free的，所以不会发生向后合并操作。  
+二、向前合并  
+先判断后一个chunk是否为free，前文已经介绍过，glibc malloc通过如下代码判断：  
+![](../pictures/heapunlink4.JPG)  
+PS：在本例中next chunk即second chunk，为了便于理解后文统一用next chunk。    
+
+从上面代码可以知道，它是通过将nextchunk + nextsize计算得到指向下下一个chunk的指针，然后判断下下个chunk的size的PREV_INUSE标记位。在本例中，此时nextsize被我们设置为了-4，这样glibc malloc就会将next chunk的prev_size字段看做是next-next chunk的size字段，而我们已经将next chunk的prev_size字段设置为了一个偶数，因此此时通过inuse_bit_at_offset宏获取到的nextinuse为0，即next chunk为free！既然next chunk为free，那么就需要进行向前合并，所以就会调用unlink(nextchunk, bck, fwd);函数。真正的重点就是这个unlink函数！  
+
+在前文2.1节中已经介绍过unlink函数的实现，这里为了便于说明攻击思路和过程，再详细分析一遍，unlink代码如下：  
+
+此时P = nextchunk, BK = bck, FD = fwd。  
+1)首先FD = nextchunk->fd = free地址– 12;  
+2)然后BK = nextchunk->bk = shellcode起始地址；  
+3)再将BK赋值给FD->bk，即（free地址– 12）->bk = shellcode起始地址；  
+4)最后将FD赋值给BK->fd，即(shellcode起始地址)->fd = free地址– 12。  
+前面两步还好理解，主要是后面2步比较迷惑。我们作图理解：  
+![](../pictures/heapunlink5.JPG)  
+
+结合上图就很好理解第3，4步了。细心的朋友已经注意到，free addr -12和shellcode addr对应的prev_size等字段是用虚线标记的，为什么呢？因为事实上它们对应的内存并不是chunk header，只是在我们的攻击中需要让glibc malloc在进行unlink操作的时候将它们强制看作malloc_chunk结构体。这样就很好理解为什么要用free addr – 12替换next chunk的fd了，因为(free addr -12)->bk刚好就是free addr，也就是说第3步操作的结果就是将free addr处的数据替换为shellcode的起始地址。  
+
+由于已经将free addr处的数据替换为了shellcode的起始地址，所以当程序在代码[5]处再次执行free的时候，就会转而执行shellcode了。  
+ 
+至此，整个unlink攻击的原理已经介绍完毕，剩下的工作就是根据上述原理，编写shellcode了。只不过这里需要注意一点，glibc malloc在unlink的过程中会将shellcode + 8位置的4字节数据替换为free addr – 12，所以我们编写的shellcode应该跳过前面的12字节。  
+
+被攻击者修改过的用户输入，漏洞程序的堆内存的形象图如下：    
 ![](../pictures/heapoverflow2.png)  
 
+## 3. 漏洞利用代码
 理解了unlink技术之后，我们就可以写漏洞利用程序了。  
 
 ``` c
@@ -147,7 +185,7 @@ cmd  exp  exp.c  vuln  vuln.c
 $ exit
 sploitfun@sploitfun-VirtualBox:~/lsploits/hof/unlink$
 ```
-保护: 现如今，’glibc malloc’经过许多年的发展已经被强化了(hardened)，unlink已经技术无法成功执行。为了防御unlink技术带来的堆溢出，’glibc malloc’加入了下面的检查：  
+保护: 现如今，’glibc malloc’经过许多年的发展已经被强化了(hardened)，unlink已经技术无法成功执行。为了防御unlink技术带来的堆溢出，’glibc malloc’加入了下面的检查：    
 
 * [两次释放(Double Free)](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3947) : 释放已经处于空闲状态的chunk是禁止的。当攻击者试图将’second’ chunk的大小覆盖为-4, 其PREV_INUSE位被复位，意味着’first’已经处于空闲状态。这时’glibc malloc’会抛出一个两次释放错误。  
 ``` c
@@ -176,6 +214,9 @@ if (__builtin_expect (FD->bk != P || BK->fd != P, 0))
 [ASLR](https://en.wikipedia.org/wiki/Address_space_layout_randomization)  
 [NX](https://en.wikipedia.org/wiki/NX_bit)  
 [RELRO(ReLocation Read-Only)](https://isisblogs.poly.edu/2011/06/01/relro-relocation-read-only/) 
+
+## 4. 另一种unlink攻击技术
+经过上述3层安全检测，是否意味着所有unlink技术都失效了呢？答案是否定的，因为进行漏洞攻击的人脑洞永远比天大！之前刚好看到一篇好文(强烈推荐)，主讲在Android4.4上利用unlink机制实现堆溢出攻击。众所周知，Android内核基于linux，且其堆内存管理也是使用的glibc malloc，虽然在一些细节上有些许不同，但核心原理类似。该文介绍的攻击方式就成功绕过了上述三层检测。  
 
 ## 参考
 
