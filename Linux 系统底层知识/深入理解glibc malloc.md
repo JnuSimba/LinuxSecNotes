@@ -326,7 +326,7 @@ Small Bin：
 小于512字节的chunk被称为small chunk，保存了small chunk的bins被称为small bins。Small bins的内存分配和释放速度都比large bins快（但是比fast bins慢）  
 
 * 数量—62  
- 1. 每个small bin都包含一个用于保存空闲chunk的双向循环链表，之所以用双向链表是由于在small bin中chunk不能直接从链表的中间位置链接到，free掉的chunk从链表的尾端移除，增加的chunk从链表的链表的前端插入  
+ 1. 每个small bin都包含一个用于保存空闲chunk的双向循环链表，之所以用双向链表是由于在small bin中chunk不能直接从链表的中间位置链接到，malloc 所需的chunk从链表的尾端移除，free 增加的chunk从链表的链表的前端插入  
 * 大小—8字节递增  
  1. samll bins 记录着大小以8字节递增的bin链表。也即，第一个small bin(Bin 2)记录着大小为16字节的chunk的binlist、small bin(Bin 3)记录着大小为24字节的chunk的binlist 依次类推……  
  2. 指定samll bin中所有chunk大小均相同，因此无需排序。  
