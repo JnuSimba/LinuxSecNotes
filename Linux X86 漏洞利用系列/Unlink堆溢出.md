@@ -46,7 +46,7 @@ PS: 鉴于篇幅，这里主要介绍非mmaped的chunks的回收机制，回想�
 #### 一、向后合并
 相关代码如下：  
 ![](../pictures/heapunlink1.JPG)   
- 
+![](../pictures/heapunlink5.JPG)  
 首先检测前一个chunk是否为free，这可以通过检测当前free chunk的PREV_INUSE(P)比特位知晓。在本例中，当前chunk（first chunk）的前一个chunk是allocated的，因为在默认情况下，堆内存中的第一个chunk总是被设置为allocated的，即使它根本就不存在。  
 
 如果为free的话，那么就进行向后合并：  
@@ -58,12 +58,12 @@ PS: 鉴于篇幅，这里主要介绍非mmaped的chunks的回收机制，回想�
 ### 二、向前合并操作
 首先检测next chunk是否为free。那么如何检测呢？很简单，查询next chunk之后的chunk的PREV_INUSE (P)即可。相关代码如下：  
 ![](../pictures/heapunlink2.JPG)   
-
+  
 整个操作与”向后合并“操作类似，再通过上述代码结合注释应该很容易理解free chunk的向前结合操作。在本例中当前chunk为first，它的下一个chunk为second，再下一个chunk为top chunk，此时top chunk的 PREV_INUSE位是设置为1的(表示top chunk的前一个chunk，即second chunk,已经使用)，因此first的下一个chunk不会被“向前合并“掉。  
    
 介绍完向前、向后合并操作，下面就需要了解合并后(或因为不满足合并条件而没合并)的chunk该如何进一步处理了。在glibc malloc中，会将合并后的chunk放到unsorted bin中(还记得unsorted bin的含义么？)。相关代码如下：  
 ![](../pictures/heapunlink3.JPG)  
- 
+![](../pictures/heapunlink6.JPG) 
 
 上述代码完成的整个过程简要概括如下：将当前chunk插入到unsorted bin的第一个chunk(第一个chunk是链表的头结点，为空)与第二个chunk之间(真正意义上的第一个可用chunk)；然后通过设置自己的size字段将前一个chunk标记为已使用；再更改后一个chunk的prev_size字段，将其设置为当前chunk的size。  
 
@@ -91,7 +91,7 @@ PS：在本例中next chunk即second chunk，为了便于理解后文统一用ne
 从上面代码可以知道，它是通过将nextchunk + nextsize计算得到指向下下一个chunk的指针，然后判断下下个chunk的size的PREV_INUSE标记位。在本例中，此时nextsize被我们设置为了-4，这样glibc malloc就会将next chunk的prev_size字段看做是next-next chunk的size字段，而我们已经将next chunk的prev_size字段设置为了一个偶数，因此此时通过inuse_bit_at_offset宏获取到的nextinuse为0，即next chunk为free！既然next chunk为free，那么就需要进行向前合并，所以就会调用unlink(nextchunk, bck, fwd);函数。真正的重点就是这个unlink函数！  
 
 在前文2.1节中已经介绍过unlink函数的实现，这里为了便于说明攻击思路和过程，再详细分析一遍，unlink代码如下：  
-
+![](../pictures/heapunlink7.JPG)  
 此时P = nextchunk, BK = bck, FD = fwd。  
 1)首先FD = nextchunk->fd = free地址– 12;  
 2)然后BK = nextchunk->bk = shellcode起始地址；  
