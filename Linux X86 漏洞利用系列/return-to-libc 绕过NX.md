@@ -108,6 +108,7 @@ uid=1000(sploitfun) gid=1000(sploitfun) euid=0(root) egid=0(root) groups=0(root)
 $
 ```
 太棒了，我们拿到了root shell! 但在实际应用程序中，root setuid 程序设置了最低权限准则，获取root shell并没那么容易！  
+我们构造了一个假的调用堆栈，即把 exit() 的函数地址当作 system() 函数调用的返回地址。  
 
 ## x86_64 平台攻击实验
 对于本地攻击，我们可以将“/bin/sh”声明为一个环境变量，这样，retlib运行时就能找到这个字符串的首地址。具体步骤如下：  
