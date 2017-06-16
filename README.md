@@ -31,6 +31,7 @@
 	- [绕过ASLR-第一篇章（return-to-plt）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第一篇章（return-to-plt）.md)
 	- [绕过ASLR-第二篇章（暴力破解）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第二篇章（暴力破解）.md)
 	- [绕过ASLR-第三篇章（GOT覆盖与GOT解引用）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第三篇章（GOT覆盖与GOT解引用）.md)
+	- [缓冲区溢出的前世今生](./Linux%20X86%20漏洞利用系列/缓冲区溢出的前世今生.md)
 
 * 一步一步学ROP
 	- [Linux x86 篇](./一步一步学ROP/Linux%20x86%20篇.md)
