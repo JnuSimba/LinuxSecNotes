@@ -76,7 +76,7 @@ PaX是个非常厉害的东西，好像天生就是缓冲区溢出的死对头�
 　　- 动态链接库随机映射 }   
 * 还有诸如把动态链接库映射到0x00开始的低地址的其他特性
 
-这里顺便提一下Phrack58上Nergal写过的《The advancedreturn-into-lib(c) exploits》，这篇大作里提到用伪造栈桢（Fakeframe）和dl-resolve()技术突破PaX若干保护的方法，这极有可能`*nix`应用层 exploit技术中最高级的技术，Nergal解决了几个问题：Stack/Heap/BSS不可执行、mmap随机映射，显然这种高级的技术仍然无法无条件的突破PaX，所以在一个运行完全版PaX的Linux上，你想发动缓冲区溢出可能是没有机会的。
+这里顺便提一下Phrack58上Nergal写过的《The advanced return-into-lib(c) exploits》，这篇大作里提到用伪造栈桢（Fakeframe）和dl-resolve()技术突破PaX若干保护的方法，这极有可能`*nix`应用层 exploit技术中最高级的技术，Nergal解决了几个问题：Stack/Heap/BSS不可执行、mmap随机映射，显然这种高级的技术仍然无法无条件的突破PaX，所以在一个运行完全版PaX的Linux上，你想发动缓冲区溢出可能是没有机会的。
  
 3. Grsecurity
 Grsec内含PaX，和Lids一样grsec支持内核MAC（Madatory AccessControl，强制访问控制），拥有非常多的特性,详见 http://grsecurity.net/features.php
