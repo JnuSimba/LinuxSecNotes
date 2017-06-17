@@ -43,7 +43,7 @@ $sudo chmod +s vuln
 
 ## 0X01 什么是GOT覆盖
 
-这项技术可以帮助攻击者利用另一个libc函数的地址来覆盖一个特定libc函数的GOT表项。举个例子，GOT[getuid]含有getuid的函数地址(在第一次调用之后)，当偏移差(offset difference)添加到GOT[getuid]表项时，它可以被execve的函数地址覆盖。我们已经知道，在共享库中，函数从基地址的偏移总是一个常量。因此，如果我们将两个libc函数（execve与getuid）的偏移差添加到getuid的GOT表项中，我们就可以获取execve函数的地址。之后，就可以通过调用getuid来滴啊用execve!!  
+这项技术可以帮助攻击者利用另一个libc函数的地址来覆盖一个特定libc函数的GOT表项。举个例子，GOT[getuid]含有getuid的函数地址(在第一次调用之后)，当偏移差(offset difference)添加到GOT[getuid]表项时，它可以被execve的函数地址覆盖。我们已经知道，在共享库中，函数从基地址的偏移总是一个常量。因此，如果我们将两个libc函数（execve与getuid）的偏移差添加到getuid的GOT表项中，我们就可以获取execve函数的地址。之后，就可以通过调用getuid来调用execve!!  
 ```
 offset_diff = execve_addr - getuid_addr
 GOT[execve] = GOT[getuid] + offset_diff
@@ -51,13 +51,13 @@ GOT[execve] = GOT[getuid] + offset_diff
 
 ## 0X02 什么是GOT解引用
 
-这和GOT覆盖技术类似，但并不是覆盖一个特定libc函数的GOT表项，而是将GOT表项中的值拷贝到一个寄存器中并将偏移差添加到寄存器的内容中。因此现在寄存器就有了必需的libc函数地址。举个例子，GOT[getuid]含有getuid的函数地址，函数地址被拷贝到一个寄存器中。两个libc函数（execve与getuid）的偏移差添加到寄存器的内容中。现在可以跳转到寄存器的值中来调用execve!  
+这和GOT覆盖技术类似，但并不是覆盖一个特定libc函数的GOT表项，而是将GOT表项中的值拷贝到一个寄存器中并将偏移差添加到寄存器的内容中。因此现在寄存器就有了必需的libc函数地址。举个例子，GOT[getuid]含有getuid的函数地址，函数地址被拷贝到一个寄存器中。两个libc函数（execve与getuid）的偏移差添加到寄存器的内容中，现在可以跳转到寄存器的值中来调用execve!  
 ```
 offset_diff = execve_addr - getuid_addr
 eax = GOT[getuid]
 eax = eax + offset_diff
 ```
-这两种技术看起来很类似，但在运行期间出现缓冲区溢出时如何操作它们呢？ 我们需要识别出一个函数（用来执行这些运算并将结果放入寄存器中）,然后跳转到那个特定的函数来做到GOT覆盖/GOT解引用。 显然的是，在libc与我们的可执行文件中并没有一个单独的函数专门来做这件事！！ 这种情况下，我们就要利用ROP技术了。  
+这两种技术看起来很类似，但在运行期间出现缓冲区溢出时如何操作它们呢？ 我们需要识别出一个函数（用来执行这些运算并将结果放入寄存器中）,然后跳转到那个特定的函数来做到GOT覆盖/GOT解引用。 显然的是，在libc与我们的可执行文件中并没有一个单独的函数专门来做这件事，这种情况下，我们就要利用ROP技术了。  
 
 ## 0X03 什么是ROP
 
