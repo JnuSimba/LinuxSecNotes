@@ -46,7 +46,7 @@ $sudo chmod +s vuln
 
 * ESP上升(ESP Lifting)
 * 帧欺骗(Frame fakeing)
-由于ESP lifting技术要求二进制文件在编译的时候不能设置帧指针(-fomit-frame-pointer)，这里我们只谈帧欺骗技术。 由于我们的二进制文件(vuln)含有帧指针，只好采用帧欺骗技术。     
+由于ESP lifting技术要求二进制文件在编译的时候不能设置选项 `-fomit-frame-pointer` ，这里我们只谈帧欺骗技术。 由于我们的二进制文件(vuln)含有帧指针，只好采用帧欺骗技术。     
 
 ## 什么是帧欺骗
 
@@ -97,9 +97,11 @@ seteuid: 现在EIP又重新指向text地址0x0804851c(“leave ret”). 在执�
 
 可以从上面的栈布局看出，执行上述过程，栈已经按照攻击者的意图设置好，system和exit函数都能得到执行。  
 
-问题2: 在我们的例子中，seteuid必须为0. 但0已经变成一个不好的字符，如何将0写在栈地址0xbffff210处呢？Nergal的同一篇文中讲了一个简单的方法。在链接libc相关函数时，前几个调用必须是strcpy函数(其将一个NULL字节拷贝到seteuid_arg在栈中的位置)。  
+问题2: 在我们的例子中，seteuid必须为0. 但0已经变成一个不好的字符，如何将0写在栈地址0xbffff210处呢？Nergal的同一篇文中讲了一个简单的方法。在链接libc相关函数时，前几个调用可以是strcpy函数(其将一个NULL字节拷贝到seteuid_arg在栈中的位置)。  
 
-注意: 但不幸地是我的libc.so.6中strcpy函数的地址是0xb7ea6200。 libc函数地址本身包含一个NULL字节(不好的字符!)。 因此，strcpy不能成功地利用漏洞代码。sprintf（函数地址是0xb7e6e8d0)可以用来替代strcpy。使用sprintf时，NULL字节被拷贝到seteuid_arg在栈中的位置。  
+注意: 但不幸地是我的libc.so.6中strcpy函数的地址是0xb7ea6200。 libc函数地址本身包含一个NULL字节(不好的字符!)。 因此，strcpy不能成功地利用漏洞代码。sprintf（函数地址是0xb7e6e8d0)可以用来替代strcpy。使用sprintf时，NULL字节被拷贝到seteuid_arg在栈中的位置。    
+
+注：因为seteuid 参数为0，而我们漏洞代码中使用的是strcpy，故不能直接把参数的位置覆盖为0，这样会导致截断，故只能借助函数调用的方式把参数覆盖为0，同理因为这时strcpy 的函数地址包含null 字节，故不能使用strcpy，这里使用 sprintf 替换。  
 
 因此链接下面的libc函数可以解决上面提到的两个问题并成功获取root shell:  
 

