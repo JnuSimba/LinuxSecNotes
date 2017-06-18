@@ -305,7 +305,7 @@ int main( void )
 
 第[3]行通过[top chunk](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3758)代码分配一个非常大的内存块  
 
-* 请求一个大内存块的目的是在分配后，新的top chunk必须位于free的GOT表项的前8个字节。因此，只要再多一个内存分配请求而（第[4]行)就可以帮助我们覆盖free的GOT表项了。
+* 请求一个大内存块的目的是在分配后，新的top chunk必须位于free的GOT表项的前8个字节。因此，只要再多一个内存分配请求（第[4]行)就可以帮助我们覆盖free的GOT表项了。
 * 攻击者参数(argv[2] – 0xFFFFF744)作为size参数传递给第二个malloc调用(第[3]行)。size参数可以用下面的方式来计算
 	- size = ((free-8)-top)
 	- 在这里
@@ -427,8 +427,8 @@ int main( void )
 第[3]行：缓冲区溢出
 
 * 这里，攻击者的输入’argv[1]’拷贝到字符缓冲区’name’中。由于攻击者的输入大于44，ptr1变量和local_age分别被栈地址和chunk size覆盖。
-	- 栈地址-0xbffffdf0- 当第[5]行被执行时，攻击者欺骗’glibc malloc’返回这个地址
-	- Chunk size - 0x30- 当第[4]行执行时，这个chunk size被用来欺骗’glibc malloc’ ，往下看。
+	- 栈地址 - 0xbffffdf0 -- 当第[5]行被执行时，攻击者欺骗’glibc malloc’返回这个地址
+	- Chunk size - 0x30 -- 当第[4]行执行时，这个chunk size被用来欺骗’glibc malloc’ ，往下看。
 
 第[4]行：将栈区域加入到’glibc malloc’的 fast bin
 
@@ -436,14 +436,14 @@ free()调用[_int_free](https://github.com/sploitfun/lsploits/blob/master/glibc/
 
 第[5]行:获取栈区域(第[4]行中被添加)
 
-对40的分配请求被[checked_request2size](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3322)  转化为对48的请求。由于可用大小(usable size) ‘48’属于fast chunk中，可以获取它对应的[fast bin](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3333)  (位于索引4处)。Fast bin的第一个chunk被[移除](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3341) 并返回为[用户](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3355) 。第一个chunk什么都不是，但在第[4]行执行期间，栈区域被添加进去了。  
+对40的分配请求被[checked_request2size](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3322)  转化为对48的请求。由于可用大小(usable size) ‘48’属于fast chunk中，可以获取它对应的[fast bin](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3333)  (位于索引4处)。Fast bin的第一个chunk被[移除](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3341) 并返回给[用户](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3355) 。第一个chunk什么都不是，但在第[4]行执行期间，栈区域被添加进去了。  
 
 第[6]行：覆盖返回地址  
 
 * 将攻击者的’argv[1]’拷贝到栈区域(被’glibc malloc’返回)，其起始地址是是0xbffffdf0. argv[1]的前16个字节是:
 	- xeb\x0e - Jmp by 14字节
 	- \x41\x41\x41\x41\x41\x41\x41\x41\x41\x41 – Pad
-	- \xb8\xfd\xff\xbf - 存储在栈中的返回地址被此值覆盖。因此，在fvuln执行之后EIP变为0xbffffdb8- 这块区域俺有jmp指令，随后就是触发shell的shellcode!
+	- \xb8\xfd\xff\xbf - 存储在栈中的返回地址被此值覆盖。因此，在fvuln执行之后EIP变为0xbffffdb8- 这块区域包含有jmp指令，随后就是触发shell的shellcode!
 	
 利用攻击者的参数执行上述漏洞程序，将会执行shellcode,如下所示：  
 
