@@ -27,6 +27,11 @@
 		- [Unlink堆溢出](./Linux%20X86%20漏洞利用系列/Unlink堆溢出.md)
 		- [Double Free 浅析](./Linux%20X86%20漏洞利用系列/Double%20Free%20浅析.md)  
 		- [Malloc Maleficarum堆溢出](./Linux%20X86%20漏洞利用系列/Malloc%20Maleficarum堆溢出.md)
+			- [THE HOUSE OF PRIME](./Linux%20X86%20漏洞利用系列/THE%20HOUSE%20OF%20PRIME.md)
+			- [THE HOUSE OF MIND](./Linux%20X86%20漏洞利用系列/THE%20HOUSE%20OF%20MIND.md)
+			- [THE HOUSE OF FORCE](./Linux%20X86%20漏洞利用系列/THE%20HOUSE%20OF%20FORCE.md)
+			- [THE HOUSE OF LORE](./Linux%20X86%20漏洞利用系列/THE%20HOUSE%20OF%20LORE.md)
+			- [THE HOUSE OF SPIRIT](./Linux%20X86%20漏洞利用系列/THE%20HOUSE%20OF%20SPIRIT.md)
 		- [堆内off-by-one漏洞利用](./Linux%20X86%20漏洞利用系列/堆内off-by-one漏洞利用.md)
 		- [user-after-free](./Linux%20X86%20漏洞利用系列/user-after-free.md)
 	- 绕过漏洞缓解

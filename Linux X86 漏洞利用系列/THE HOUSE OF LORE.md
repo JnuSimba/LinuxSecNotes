@@ -1,3 +1,5 @@
+原文 by [gbmaster](https://gbmaster.wordpress.com)  
+
 ## THE HOUSE OF LORE
 
 When the “Malloc Maleficarum” was published, as it was a purely theoretical article, contained no real exploit implementations or practical examples. Things got a little bit better with blackngel’s “[Malloc Des-Maleficarum](http://phrack.org/issues/66/10.html)“, in which the author tried to analyze how this technique should be applied, but he wasn’t able to provide, again, any practical example. He did it, at last, in his Phrack’s article “[The House of Lore: Reloaded ptmalloc v2 & v3: Analysis & Corruption](http://phrack.org/issues/67/8.html)“, in which he got managed to explore both the corruption of small and large bins in order to be able to control the return value of a malloc() call. The common point between the smallbin and the largebin’s corruption is to overwrite the metadata of a chunk previously processed by the free() function.  

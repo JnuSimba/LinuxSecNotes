@@ -1,3 +1,5 @@
+原文 by [gbmaster](https://gbmaster.wordpress.com)  
+
 Ingredients:
 
 * The exploiter must be able to overwrite the top chunk (i.e. the overflow must happen in a chunk that allows to overwrite the wilderness

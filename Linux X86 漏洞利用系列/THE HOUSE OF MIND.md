@@ -1,3 +1,5 @@
+原文 by [gbmaster](https://gbmaster.wordpress.com)  
+
 Ingredients:  
 
 * One free() of a chunk under the control of the exploiter

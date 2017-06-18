@@ -1,3 +1,5 @@
+原文 by [gbmaster](https://gbmaster.wordpress.com)  
+
 ## THE HOUSE OF PRIME
 
 Ingredients:  

@@ -1,3 +1,5 @@
+原文 by [gbmaster](https://gbmaster.wordpress.com)  
+
 Ingredients:  
 
 * The attacker can control a location of memory higher than the one he’s trying to change: the exact location depends on the fake size of the chunk we’re free-ing (see third point)
@@ -176,7 +178,7 @@ name      -> 0xFFFFCEFC
 I don’t know how or why GCC decided to put ptr2 between name and ptr1, but this won’t change much the things. Ok, so, ptr1 needs to be set to local_age + 4 (0xFFFFCF28): in this way, the chunk’s address will be 0xFFFFCF20, and its size field will be right where local_age is stored. We need, anyway, to overwrite local_age with its good value (48 in this scenario), as the strcpy destroyed its assigned value by putting the string terminator character there.  
 
 So, the new command line will look like this:  
-`./hos` `python -c 'import sys; sys.stdout.write("A2 + "B" * 4  + "\x28\xCF\xFF\xFF" + "\x30")'` `48` 
+`./hos` `python -c 'import sys; sys.stdout.write("A2 + "B" * 4  + "\x28\xCF\xFF\xFF" + "\x30")'` `48`   
 Once ptr1 gets the value 0xFFFFCF28 and the malloc() is called again, the value 0xFFFFCF28 will be assigned to ptr2 again. As the return value is stored at 0xFFFFCF2C, this means that the bytes 4-7 of name (the variable that is going to be copied inside ptr2 through an sprintf) need to be set to the desired return value: in our case it’s the beginning of a shellcode stored inside the name variable itself (i.e. the address of name: 0xFFFFCEFC).  
 
 As the space inside the name array is very small for my good-old “Pwned!” shellcode, I had to shrink it and adapt to this scenario. Sadly, I had to shorten the printed string to a simple “Pwn”.  
