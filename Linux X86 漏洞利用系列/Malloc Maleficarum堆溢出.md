@@ -211,11 +211,11 @@ if (__glibc_unlikely (fwd->bk != bck))
 
 ## 0X02 House of Force
 
-通过这项技术，攻击者滥用top chunk的size，利用top chunk欺骗’glibc malloc’来服务大量的内存请求(比堆的系统内存大小要打)。如此一来，当发出一个新的malloc请求，free的GOT表项就会被shellcode地址覆盖。从现在开始，只要free被调用，shellcode就会执行。  
+通过这项技术，攻击者滥用top chunk的size，利用top chunk欺骗’glibc malloc’来服务大量的内存请求(比堆的系统内存大小要大)。如此一来，当发出一个新的malloc请求，free的GOT表项就会被shellcode地址覆盖。从现在开始，只要free被调用，shellcode就会执行。  
 
 假设条件: 需要三个malloc调用才能成功利用house of force 技术：  
 
-* Malloc 1: 攻击者必须能控制top chunk的大小。 这堆样就能在这个分配的chunk(物理上在top chunk前面)中溢出。
+* Malloc 1: 攻击者必须能控制top chunk的大小。 这样堆溢出就可能在这个分配的chunk(物理上在top chunk前面)。
 * Malloc 2: 攻击者必须能控制这个malloc请求的大小
 * Malloc 3: 用户输入必须拷贝到这个已经分配的chunk中。
 
@@ -235,12 +235,12 @@ int main(int argc, char *argv[])
                 printf("Usage Error\n");
                 return;
         }
-        [1]buf1 = malloc(256);
-        [2]strcpy(buf1, argv[1]); /* Prereq 1 */
-        [3]buf2 = malloc(strtoul(argv[2], NULL, 16)); /* Prereq 2 */
-        [4]buf3 = malloc(256); /* Prereq 3 */
-        [5]strcpy(buf3, argv[3]); /* Prereq 3 */
-        [6]free(buf3);
+        buf1 = malloc(256); // [1]
+        strcpy(buf1, argv[1]); /*[2] Prereq 1 */
+        buf2 = malloc(strtoul(argv[2], NULL, 16)); /*[3] Prereq 2 */
+        buf3 = malloc(256); /*[4] Prereq 3 */
+        strcpy(buf3, argv[3]); /*[5] Prereq 3 */
+        free(buf3); // [6]
         free(buf2);
         free(buf1);
         return 0;
@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
 漏洞程序的第[2]行就是堆溢出发生的地方。为了能成功利用堆溢出，攻击者要提供下面的命令行参数:
 
 * argv[1] - Shellcode + Pad + Top chunk size被拷贝到第一个malloc chunk
-* argv[2]- 传递给第一个malloc chunk的size参数
+* argv[2]- 传递给第二个malloc chunk的size参数
 * argv[3]- 用户输入被拷贝到第三个malloc chunk
 
 漏洞利用程序：  
@@ -305,14 +305,14 @@ int main( void )
 
 第[3]行通过[top chunk](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3758)代码分配一个非常大的内存块  
 
-* 请求一个大内存块的目的是在分配后top chunk必须位于free的GOT表项的前8个字节。因此，只要再多一个内存分配请求而（第[4]行)就可以帮助我们覆盖free的GOT表项了。
-* 攻击者参数(argv[2] – 0xFFFFF744)作为参数传递给第二个malloc调用(第[3]行)。size参数可以用下面的方式来计算
+* 请求一个大内存块的目的是在分配后，新的top chunk必须位于free的GOT表项的前8个字节。因此，只要再多一个内存分配请求而（第[4]行)就可以帮助我们覆盖free的GOT表项了。
+* 攻击者参数(argv[2] – 0xFFFFF744)作为size参数传递给第二个malloc调用(第[3]行)。size参数可以用下面的方式来计算
 	- size = ((free-8)-top)
 	- 在这里
 	1. free指的是可执行文件’vuln’中free的GOT表项，ie)free = 0x08049858
 	2. top指的是当前top chunk（在第一次malloc之后，第[1]行) ie)top = 0x0804a108.
 	3. 因此size = ((0x8049858-0x8)-0x804a108) = -8B8 = 0xFFFFF748
-	4. 当size = 0xFFFFF748时，我们的目标是将新的tip chunk 的8个字节放到free的GOT表项前面，可以通过这样做到
+	4. 当size = 0xFFFFF748时，我们的目标是将新的top chunk 的8个字节放到free的GOT表项前面，可以通过这样做到
 		+ (0xFFFFF748+0x804a108) = 0x08049850 = (0x08049858-0x8)
 	5. 当攻击者传递size参数(0xFFFFF748)时，’glibc malloc’将size 转化为 [可用的size](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3322) (usable size)0xfffff750。因此新的top chunk size将会位于0x8049858而不是0x8049850. 攻击者将传递0xFFFFF744(而不是0xFFFFF748)作为size参数，得到转化后的参数是‘0xFFFFF748’，这正是我们需要的。
 
