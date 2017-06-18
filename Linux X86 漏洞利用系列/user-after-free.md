@@ -51,7 +51,7 @@ $sudo chmod +s vuln
 ```
 注意: 不像[前文](http://www.csyssec.org/20170104/heap-offbyone/)，这里打开了ASLR. 现在让我们开始利用UaF bug吧，由于已经打开了ASLR，我们用信息泄露和暴力破解技术来绕过它。  
 
-上述漏洞代码含有两个UaF bug，分别在第[6]和[13]行。它们相对应的堆内存分别在第[5]和第[10]行被释放，但它们的指针在释放后仍然再次被使用 （第[6]和[13]行)！！ 第[6]行的UaF导致信息泄露，而第[13]行的UaF导致任意代码执行。  
+上述漏洞代码含有两个UaF bug，分别在第[6]和[13]行。它们相对应的堆内存分别在第[5]和第[10]行被释放，但它们的指针在释放后仍然再次被使用 （第[6]和[13]行)！第[6]行的UaF导致信息泄露，而第[13]行的UaF导致任意代码执行。  
 
 ## 0X02 什么是信息泄露？攻击者如何利用？
 
@@ -82,7 +82,7 @@ $sudo chmod +s vuln
 * 第[13]行的read在’p2’被释放后继续使用它
 * 第[14]行回收了’p1’的1024字节堆内存给glibc malloc，当程序退出时，导致任意代码执行。
 
-通过阅读[前文](http://www.csyssec.org/20170104/glibcmalloc/)，我们知道当’p2’被回收给glibc maloc时候，会被[合并](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4017)到top chunk。 之后，当为’p2_1’请求内存时，会从top chunk中[分配](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3755) -‘p2’和’p2_1’含有相同的堆地址。当为’p2_2’请求内存时，会从top chunk中- ‘p2\2’距’p2’有512字节。当’p2’指针释放后被使用(第[13]行)，攻击者控制的数据(最多1019字节)被拷贝到’pc_1’中，而’p2_1’只有512字节，剩下的被攻击者控制的字节会覆盖下一个chunk’p2_2’，这样一来就允许攻击者覆盖下一个chunk的头部size域!!!  
+通过阅读[前文](http://www.csyssec.org/20170104/glibcmalloc/)，我们知道当’p2’被回收给glibc maloc时候，会被[合并](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L4017)到top chunk。 之后，当为’p2_1’请求内存时，会从top chunk中[分配](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3755) -‘p2’和’p2_1’含有相同的堆地址。当为’p2_2’请求内存时，会从top chunk中- ‘p2_2’距’p2’有512字节。当’p2’指针释放后被使用(第[13]行)，攻击者控制的数据(最多1019字节)被拷贝到’pc_1’中，而’p2_1’只有512字节，剩下的被攻击者控制的字节会覆盖下一个chunk’p2_2’，这样一来就允许攻击者覆盖下一个chunk的头部size域!  
 
 堆布局：  
 ![](../pictures/useafterfree.png)  
@@ -108,7 +108,7 @@ import telnetlib
 import time
 ip = '127.0.0.1'
 port = 1234
-def conv(num): return struct.pack("<I
+def conv(num): return struct.pack("<I", num)
 def send(data):
  global con
  con.write(data)

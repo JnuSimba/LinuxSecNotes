@@ -362,14 +362,14 @@ void fvuln(char *str1, int age)
    char *ptr1, name[44];
    int local_age;
    char *ptr2;
-   [1]local_age = age; /* Prereq 2 */
-   [2]ptr1 = (char *) malloc(256);
+   local_age = age; /*[1] Prereq 2 */
+   ptr1 = (char *) malloc(256); // [2]
    printf("\nPTR1 = [ %p ]", ptr1);
-   [3]strcpy(name, str1); /* Prereq 1 */
+   strcpy(name, str1); /*[3] Prereq 1 */
    printf("\nPTR1 = [ %p ]\n", ptr1);
-   [4]free(ptr1); /* Prereq 2 */
-   [5]ptr2 = (char *) malloc(40); /* Prereq 3 */
-   [6]snprintf(ptr2, 40-1, "%s is %d years old", name, local_age); /* Prereq 4 */
+   free(ptr1); /*[4] Prereq 2 */
+   ptr2 = (char *) malloc(40); /*[5] Prereq 3 */
+   snprintf(ptr2, 40-1, "%s is %d years old", name, local_age); /*[6] Prereq 4 */
    printf("\n%s\n", ptr2);
 }
 int main(int argc, char *argv[])

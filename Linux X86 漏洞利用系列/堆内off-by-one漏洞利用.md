@@ -14,7 +14,7 @@ VM Setup: Fedora 20(x86)
 源字符串长度等于目的字符串长度  
 当源字符串长度等于目的字符串长度时，单个NULL字节会被拷贝到目的字符串中。这里由于目的字符串处于堆中，单个NULL字节可以覆盖下一个chunk的头部信息,从而导致任意代码执行。  
 
-扼要重述：在[这篇]((../Linux%20系统底层知识/深入理解glibc%20malloc.md) 文中说过，堆根据每个用户对堆内存的请求，被分为多个chunk.每个chunk有自己的chunk头部信息(由[malloc_chunk](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1108) 表示)。 结构体malloc_chunk含有以下四个域：    
+扼要重述：在[这篇](../Linux%20系统底层知识/深入理解glibc%20malloc.md) 文中说过，堆根据每个用户对堆内存的请求，被分为多个chunk.每个chunk有自己的chunk头部信息(由[malloc_chunk](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1108) 表示)。 结构体malloc_chunk含有以下四个域：    
 
 1. prev_size - 若前一个chunk空闲，则prev_size域包含前一个chunk的大小信息；若前一个chunk已经被分配，则这个域包含前一个chunk的用户数据
 2. size: size域含有这个已经分配的chunk。域的后3比特含有flag信息。  
@@ -74,13 +74,13 @@ $sudo chmod +s consolidate_forward
 
 ## 0X02 如何做到任意代码执行
 
-当单NULL字节覆盖下一个chunk(‘p3’)的chunk头部信息时就会发生任意代码执行。当1020字节的chunk(‘p2’)被单字节溢出时，是下一个chunk(‘p3’)头部大小的最小影响字节(Least Significant Byte)-(而不是prev_size的最小影响字节)被NULL字节覆盖。  
+当单NULL字节覆盖下一个chunk(‘p3’)的chunk头部信息时就会发生任意代码执行。当1020字节的chunk(‘p2’)被单字节溢出时，是下一个chunk(‘p3’)头部大小的最小影响字节(Least Significant Byte)，而不是prev_size的最小影响字节 被NULL字节覆盖。  
 
 ## 0X03 为什么不是prev_size的最小影响字节(LSB)被覆盖
 
 由于需要额外的空间来存储malloc_chunk以及为了对其的目的，[checked_request2size](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1254) 将用户需求的大小转化为可用的大小(内部表示字节大小-internal representation size)。当可用大小的最后3个比特都没有被设置时会发生这种转化，这3个比特用来存储flag信息 P,M与N。  
 
-上漏洞代码执行到malloc(1020)时，1020字节的用户需求大小被转化为((1020 + 4 + 7) & ~7) 1024字节(内部表示字节大小)。分配1020字节的chunk开销只要4字节。但对于一个分配的chunk我们却需要8字节的chunk头部信息用来存储prev_size和size信息。1024字节的chunk前8个字节用作chunk头部信息，但现在只剩下1016（1024-8）字节（而不是1020字节)用来存储用户数据。如上面说的prev_size的定义，如果前一个chunk(‘p2’)被分配，chunk(‘p3’)的prev_size域含有用户数据。chunk(‘p3’)的prev_size紧邻已经分配的chunk(‘p2’)，其含有用户数据剩下的4字节。这就是为什么size(而不是pre_size)的LSB被但NULL字节覆盖的原因了。    
+上漏洞代码执行到malloc(1020)时，1020字节的用户需求大小被转化为((1020 + 4 + 7) & ~7) 1024字节(内部表示字节大小)。分配1020字节的chunk开销只要4字节。但对于一个分配的chunk我们却需要8字节的chunk头部信息用来存储prev_size和size信息。1024字节的chunk前8个字节用作chunk头部信息，但现在只剩下1016（1024-8）字节（而不是1020字节)用来存储用户数据。如上面说的prev_size的定义，如果前一个chunk(‘p2’)被分配，chunk(‘p3’)的prev_size域含有用户数据。chunk(‘p3’)的prev_size紧邻已经分配的chunk(‘p2’)，其含有用户数据剩下的4字节。这就是为什么size(而不是pre_size)的LSB被NULL字节覆盖的原因了。    
 
 堆布局:  
 ![](../pictures/heapoffbyone1.png)  
@@ -94,7 +94,7 @@ $sudo chmod +s consolidate_forward
 现在我们已经知道在off-by-one漏洞中，单NULL字节覆盖下一个chunk(‘p3’) size域的LSB。单NULL字节覆盖意味着chunk(‘p3’)的flag信息被清除了。 被覆盖的chunk(‘p2’)尽管处于已经被分配的状态，现在却变得空闲了。当在溢出的chunk (‘p2)前的(‘p’)被释放时，这种状态不一致性驱使glibc去unlink 已经处于分配状态的chunk(‘p2’)  
 
 在[这篇](http://www.csyssec.org/20170104/heapoverflow-unlink/) 文章中，由于任何四字节的内存区域都能被写上攻击者的数据，unlink一个已经在分配状态的chunk会导致任意代码执行
-！！ 在同一篇文中，我们也知道由于glibc近些年的被强化，unlink技术已经过时了！ 尤其是当“[损坏的双链表](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1414) ”这个条件成立时，任意代码执行是不可能的。  
+！在同一篇文中，我们也知道由于glibc近些年的被强化，unlink技术已经过时了！ 尤其是当“[损坏的双链表](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L1414) ”这个条件成立时，任意代码执行是不可能的。  
 
 在2014年后期， [google’s project zero team](http://googleprojectzero.blogspot.in/2014/08/the-poisoned-nul-byte-2014-edition.html) 发现一种通过unlink一个大的chunk(large chunk)的方法，可以成功绕过”损坏的双链表”条件。   
 
@@ -135,7 +135,7 @@ Unlink:
 ```
 在glibc malloc中，主环形双链表由malloc_chunk的fs和bk域来维护，而次环形双链表由malloc_chunk的fd_nextsize和bk_nextsize域来维护。这看起来像是损坏的双链表hardening被应用到了主环形双链表(第[1]行)和次环形双链表中(第[4],[5]行)，但次要环形双链表的hardening仅仅是一个debug assert语句(不像是主环形双链表hardening会在运行时进行检查)，它最终并不会编译到产品中(至少在fedora是这样的)。次要环形双链表的强化(hardening)（第[4],[5]行)并没有什么意义，这可以让我们在4字节的内存区域中写任何数据(第[6],[7]行)。  
 
-任然还有一些东西要讲明白一些。我们来看看如何通过unlink一个大的chunk来做到任意代码执行的细节！ 现在攻击者已经控制住即将要被释放的大chunk，他以下方式覆盖malloc_chunk中的域：  
+仍然还有一些东西要讲明白一些。我们来看看如何通过unlink一个大的chunk来做到任意代码执行的细节！ 现在攻击者已经控制住即将要被释放的大chunk，他以下面方式覆盖malloc_chunk中的域：  
 
 * fd必须指回到已经被释放的chunk地址来绕过主环形双链表的hardening
 * bk也必须指回到已经被释放的chunk地址来绕过主环形双链表的hardening
@@ -145,7 +145,7 @@ Unlink:
 但第[6],[7]行需要fd_nextsize和bk_nextsize是可写的。fd_nextsize指向 free_got_addr -0x14，所以它是可写的。但bk_nextsize指向system_addr，这属于libc.so的text段区域，所以它是不可写的。要让fd_nextsize和bk_nextsize同时可写，需要覆盖tls_dtor_list  
 
 ## 0X04 覆盖tls_dtor_list
-[tls_tor_list](https://github.com/sploitfun/lsploits/blob/master/glibc/stdlib/cxa_thread_atexit_impl.c#L32) 是一个线程本地变量，含有一个函数指针列表，在执行exit()时会被调用。 [__call_tls_dtors](https://github.com/sploitfun/lsploits/blob/master/glibc/stdlib/cxa_thread_atexit_impl.c#L81)()遍历tls_dtor_list并一个一个[调用](https://github.com/sploitfun/lsploits/blob/master/glibc/stdlib/cxa_thread_atexit_impl.c#L88)其中的函数！！ 所以如果我们能利用一个含有system和system_arg的堆地址覆盖tls_dtor_list，来替换[dtor_list](https://github.com/sploitfun/lsploits/blob/master/glibc/stdlib/cxa_thread_atexit_impl.c#L24)中的func和obj， system()就能被调用。    
+[tls_tor_list](https://github.com/sploitfun/lsploits/blob/master/glibc/stdlib/cxa_thread_atexit_impl.c#L32) 是一个线程本地变量，含有一个函数指针列表，在执行exit()时会被调用。 [__call_tls_dtors](https://github.com/sploitfun/lsploits/blob/master/glibc/stdlib/cxa_thread_atexit_impl.c#L81)() 遍历tls_dtor_list并一个一个 [调用](https://github.com/sploitfun/lsploits/blob/master/glibc/stdlib/cxa_thread_atexit_impl.c#L88) 其中的函数！所以如果我们能利用一个含有system和system_arg的堆地址覆盖tls_dtor_list，来替换[dtor_list](https://github.com/sploitfun/lsploits/blob/master/glibc/stdlib/cxa_thread_atexit_impl.c#L24)中的func和obj， system() 就能被调用。    
 
 ![](../pictures/heapoffbyone2.png)  
 
@@ -162,7 +162,7 @@ Unlink:
 
 由于bk_nextsize指向堆地址，让它变成可写的问题也解决了。  
 
-利用所有这些信息，我们可以写个漏洞利用程序来攻击’consolidate_forward’了！！  
+利用所有这些信息，我们可以写个漏洞利用程序来攻击’consolidate_forward’了！  
 
 漏洞利用代码:  
 
@@ -179,7 +179,8 @@ system = 0x4e0a86e0
 sh = 0x80482ce
 #endianess convertion
 def conv(num):
- return struct.pack("<I",num(fd)
+ return struct.pack("<I",num)
+buf = ?
 buf += conv(bk)
 buf += conv(fd_nextsize)
 buf += conv(bk_nextsize)
@@ -204,4 +205,4 @@ $
 
 ## 0X05 为什么没能获取root shell
 
-当uid!=euid时，/bin/bash会丢弃权限。我们的二进制文件’consolidate _forward’的真实uid=1000，有效uid=0。 由于真实uid!=有效uid，因此当system() 被调用时，bash会丢弃权限。为了解决这个问题，我们需要在执行system()之前调用setuid(0)，由于_call_tls_dtors遍历tls_dtor_list并一个一个调用其中的函数，我们需要链接setuid()和system()  
+当 `uid != euid` 时，/bin/bash会丢弃权限。我们的二进制文件 ’consolidate _forward’ 的真实uid=1000，有效uid=0。 由于真实uid!=有效uid，因此当 system() 被调用时，bash会丢弃权限。为了解决这个问题，我们需要在执行system()之前调用setuid(0)，由于_call_tls_dtors 遍历 tls_dtor_list 并一个一个调用其中的函数，我们需要链接 setuid() 和 system() 。    
