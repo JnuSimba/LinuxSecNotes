@@ -461,9 +461,6 @@ sploitfun@sploitfun-VirtualBox:~/Dropbox/sploitfun/heap_overflow/Malloc-Malefica
 ```
 保护：至今为止，还没有针对这项技术的保护措施。所以就算用最新的glibc编译，这项技术也可以帮助我们成功利用堆溢出。  
 
-### House of Prime 待更新 
-### House of Lore 待更新
-
 注意：出于演示目的，上述漏洞程序编译时关闭以下保护机制： 
 
 [ASLR](https://en.wikipedia.org/wiki/Address_space_layout_randomization)  

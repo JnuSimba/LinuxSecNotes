@@ -210,6 +210,20 @@ if (__builtin_expect (nextchunk->size <= 2 * SIZE_SZ, 0)
 if (__builtin_expect (FD->bk != P || BK->fd != P, 0))                     
       malloc_printerr (check_action, "corrupted double-linked list", P);
 ```
+如何绕过还是要根据这段保护代码来谈。我们势必需要构造合适的条件的来过掉这行代码，那么就要找一个指向p的的已知的地址，然后根据这个地址去设置伪造的fd和bk指针就能改掉原p指针。  
+以64bit为例，假设找到了一个已知地址的ptr是指向p(p指向堆上的某个地方)的，通过堆溢出，我们可以做如下的修改。  
+```
+p->fd=ptr-0x18
+p->bk=ptr-0x10
+```
+布置好如此结构后，再触发unlink宏，会发生如下情况。   
+1.FD=p->fd(实际是ptr-0x18)
+2.BK=p->bk(实际是ptr-0x10)
+3.检查是否满足上文所示的限制，由于FD->bk和BK->fd均为*ptr(即p)，由此可以过掉这个限制
+4.FD->bk=BK
+5.BK->fd=FD(p=ptr-0x18)
+这时候再对p进行写入，可以覆盖掉p原来的值，例如我们用合适的 payload 将`free@got`写入。p就变成了`free@got`，那么再改一次p，把`free@got`改为 shellcode 的地址或者说 system 的地址都可以。之后再调用 free 功能，就可以任意命令执行。
+
 注意：为了更好的演示，漏洞程序在编译的时候没有添加以下保护机制：  
 
 [ASLR](https://en.wikipedia.org/wiki/Address_space_layout_randomization)  
