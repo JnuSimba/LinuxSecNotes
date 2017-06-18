@@ -3,7 +3,7 @@
 C/C++ (but also other languages) make a huge use of format functions: let’s think to all the times that we use them to print messages or when we need to write data formatted into a specific way inside a string. I’m talking, of course, about printf, fprintf, sprintf, etc.  
 
 The principle behind all these functions is to evaluate the format string specified (y’know… all this “%s %d %X” stuff) and, at the same time, access the additional parameters specified to correctly substitute all the specifiers with the correct data. What could possibly go wrong with a printf? Well, what if we let the user specify the format string itself? What if, instead of the correct usage  
-`printf("%s", str);`
+`printf("%s", str);`  
 this other one  
  `printf(str);`  
 is used?  
@@ -152,7 +152,7 @@ Here's a cookie, for you!
 ```
 Format strings can get, anyway, WAY MORE complicated than all the ones that I showed in this article, as they can be used to build the stack for a call and for many other purposes. I chose to not go further with this technique because they’re not too widespread anymore nowadays (at least, not in this form): we’ll be able to get back on this in the future anyway.  
 
-And now, an article of mine wouldn’t be such without some history. The first format string vulnerability was found by Miller, Fredriksen and So during a fuzz test on the csh shell in December 1990, when they published the results of the analysis on the paper “[An Empirical Study of the Reliability of UNIX Utilities](ftp://ftp.cs.wisc.edu/paradyn/technical_papers/fuzz.pdf)“. However, this type of vulnerability remained silent for almost ten years. This silence was broken by Tymm Twillman, who discovered a vulnerability inside the ProFTPD daemon code in September 1999 and published his analysis on [Bugtraq](http://seclists.org/bugtraq/1999/Sep/328). This was only the beginning because, not much time later, the attention was focused on WU-FTPD, as [Przemyslaw Frasunek](http://seclists.org/bugtraq/2000/Jun/312) and [tf8](http://seclists.org/bugtraq/2000/Jun/297) started publishing working exploits for similar vulnerabilities.  
+And now, an article of mine wouldn’t be such without some history. The first format string vulnerability was found by Miller, Fredriksen and So during a fuzz test on the csh shell in December 1990, when they published the results of the analysis on the paper “[An Empirical Study of the Reliability of UNIX Utilities] ftp://ftp.cs.wisc.edu/paradyn/technical_papers/fuzz.pdf“. However, this type of vulnerability remained silent for almost ten years. This silence was broken by Tymm Twillman, who discovered a vulnerability inside the ProFTPD daemon code in September 1999 and published his analysis on [Bugtraq](http://seclists.org/bugtraq/1999/Sep/328). This was only the beginning because, not much time later, the attention was focused on WU-FTPD, as [Przemyslaw Frasunek](http://seclists.org/bugtraq/2000/Jun/312) and [tf8](http://seclists.org/bugtraq/2000/Jun/297) started publishing working exploits for similar vulnerabilities.  
 
 Format string attacks definitely gained popularity in these months and it was time to analyse how they worked in a proper way. The paper containing the results is “[Format String Attacks](http://www.thenewsh.com/~newsham/format-string-attacks.pdf)“, published by Timothy Newsham in September 2000.    
 
