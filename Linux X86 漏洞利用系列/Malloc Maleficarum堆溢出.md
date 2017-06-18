@@ -13,15 +13,15 @@ CSysSec注： 本系列文章译自安全自由工作者Sploitfun的漏洞利用
 
 ## 0X01 House of Mind
 
-通过这项技术，攻击者利用构造的假arena( Fake Arena)来欺骗’glibc malloc’。通过构造假的arena以让未排序bin的fd含有free的GOT表项地址(12)。 如此一来，漏洞程序中释放的free函数的GOT表项被shellcode地址覆盖。成功覆盖GOT之后，任何时候调用漏洞程序的free函数，shellcode就会执行。  
+通过这项技术，攻击者利用构造的假arena( Fake Arena)来欺骗’glibc malloc’。通过构造假的arena以让未排序bin的fd含有 `free的GOT表项地址 - 12`。 如此一来，漏洞程序中释放的free函数的GOT表项被shellcode地址覆盖。成功覆盖GOT之后，任何时候调用漏洞程序的free函数，shellcode就会执行。  
 
 假设条件: 由于不是所有的堆溢出漏洞程序都能被house of mind技术成功利用，以下是成功利用的假设条件：  
 
-1. 调用一系列malloc，直到一个chunk的地址对其多倍的HEAP_MAX_SIZE，进而生成一块内存区域能被攻击者控制。在这块内存区域里，可以发现假的heap_info结构体。假的heap_info的arena指针ar_ptr将会指向假的arena。这样一来，假的arena和heap_info内存区域都会被攻击者控制。
-2. Size域(其arena指针是prereq 1)被攻击者控制的一个chunk必须要释放。  
-紧邻上述被释放chunk的下一个chunk不能是一个top chunk.  
+1. 调用一系列malloc，直到一个chunk的地址对齐多倍的HEAP_MAX_SIZE，进而生成一块内存区域能被攻击者控制。在这块内存区域里，可以发现假的heap_info结构体，假的heap_info的arena指针ar_ptr将会指向假的arena。这样一来，假的arena和heap_info内存区域都会被攻击者控制。
+2. 被攻击者控制的一个chunkd的Size域(其arena指针是prereq 1)必须要释放。  
+3. 紧邻上述被释放chunk的下一个chunk不能是一个top chunk。  
 
-漏洞程序：这个漏洞程序满足上述假设条件  
+漏洞程序：这个漏洞程序满足上述假设条件   
 
 ``` c
 /* vuln.c
