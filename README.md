@@ -16,6 +16,7 @@
     - [Linux 堆内存管理深入分析（上）](./Linux%20系统底层知识/Linux%20堆内存管理深入分析（上）.md)
     - [Linux 堆内存管理深入分析（下）](./Linux%20系统底层知识/Linux%20堆内存管理深入分析（下）.md)
     - [Hook 内核之PVOPS](./Linux%20系统底层知识/Hook%20内核之PVOPS.md)
+    - [Born A Shell](./Linux%20系统底层知识/Born%20A%20Shell.md)
  
 * Linux(X86)漏洞利用系列
 	- 缓冲区溢出
