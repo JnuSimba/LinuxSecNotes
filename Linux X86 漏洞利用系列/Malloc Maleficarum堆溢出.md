@@ -18,7 +18,7 @@ CSysSec注： 本系列文章译自安全自由工作者Sploitfun的漏洞利用
 假设条件: 由于不是所有的堆溢出漏洞程序都能被house of mind技术成功利用，以下是成功利用的假设条件：  
 
 1. 调用一系列malloc，直到一个chunk的地址对齐多倍的HEAP_MAX_SIZE，进而生成一块内存区域能被攻击者控制。在这块内存区域里，可以发现假的heap_info结构体，假的heap_info的arena指针ar_ptr将会指向假的arena。这样一来，假的arena和heap_info内存区域都会被攻击者控制。
-2. 被攻击者控制的一个chunkd的Size域(其arena指针是prereq 1)必须要释放。  
+2. 被攻击者控制的一个chunk的Size域(其arena指针是prereq 1)必须要释放。  
 3. 紧邻上述被释放chunk的下一个chunk不能是一个top chunk。  
 
 漏洞程序：这个漏洞程序满足上述假设条件   
@@ -46,7 +46,7 @@ int main (void) {
      break;
    }
  }
- [2]ptr3 = malloc(1024); /* Last chunk. Prereq 3: Next chunk to ptr2 != av->top */
+ [2]ptr3 = malloc(1024); /* Last chunk. Prereq 3: (Next chunk to ptr2) != av->top */
  /* User Input. */
  [3]fread (ptr, 1024 * 1024, 1, stdin);
  [4]free(ptr2); /* Prereq 2: Freeing a chunk whose size and its arena pointer is controlled by the attacker. */
@@ -171,8 +171,8 @@ int main() {
 攻击者生成数据文件作为用户输入，当漏洞程序的第[4]行执行时，’glibc malloc’会做以下事情：  
 
 * 调用arena_for_chunk 宏获取正被释放中的chunk的arena
-	- [arena_for_chunk](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L47) : 如果NON_MAIN_ARENA (N)位没有被设置，返回主arena(main arena)。如果已经设置，通过将chunk地址对其多倍的HEAP_MAX_SIZE访问相应的heap_info结构体。然后，返回获取heap_info结构体的arena指针。在我们的例子中，ON_MAIN_ARENA (N)被攻击者设置，所以得到了正要被释放的chunk的heap_info结构体(位于地址0x0810000处)。heap_info的ar_ptr = Fake arena的基地址(0x0804a018)。
-* 以arena指针和chunk地址作为参数调用_int_free。在我们的例子中，arena指针指向fake arena， 因此fake arena和chun地址作为参数传递到_int_free。
+	- [arena_for_chunk](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L47) : 如果NON_MAIN_ARENA (N)位没有被设置，返回主arena(main arena)。如果已经设置，通过将chunk地址对齐多倍的HEAP_MAX_SIZE访问相应的heap_info结构体。然后，返回获取heap_info结构体的arena指针。在我们的例子中，ON_MAIN_ARENA (N)被攻击者设置，所以得到了正要被释放的chunk的heap_info结构体(位于地址0x0810000处)。heap_info的ar_ptr = Fake arena的基地址(0x0804a018)。
+* 以arena指针和chunk地址作为参数调用_int_free。在我们的例子中，arena指针指向fake arena， 因此fake arena和chunk地址作为参数传递到_int_free。
 	- Fake arena: 以下是fake arena中需要被攻击者覆盖的必要域:
 		1. [Mutex](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L14)- 必须处于解锁状态(unlocked state).
 		2. [Bins](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L29)- 未排序的bin fd必须含有free函数的GOT表项地址-12
@@ -185,7 +185,7 @@ int main() {
 	- [合并](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L87)：
 		1. 查找前一个chunk是否空闲，如果空闲，则合并。在我们的例子中，前一个chunk被分配，因此不能向后合并。
 		2. 查找下一个chunk是否空闲，如果空闲，则合并。在我们的例子中，下一个chunk被分配，因此可以向前合并。
-	- 将当前释放的chunk放入未被排序的bin中。在我们的例子中，fake arena的未排序bin的fs含有free函数的GOT表项地址（12），被拷贝到‘[fwd](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L100)’中。之后，[当前被释放的chunk的地址被拷贝到’fwd->bk’中](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L109)。 bk位于malloc_chunk的12偏移处，因此12加入到’fwd’值中(ie. free- 12+12)。现在free的GOT表项被当前释放的chunk地址修改。由于攻击者已经将shellcode放入到当前被释放的chunk中，从现在开始，只要free被调用，攻击者的shellcode就会执行。  
+	- 将当前释放的chunk放入未被排序的bin中。在我们的例子中，fake arena的未排序bin的fd含有free函数的GOT表项地址（12），被拷贝到‘[fwd](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L100)’中。之后，[当前被释放的chunk的地址被拷贝到’fwd->bk’中](https://github.com/sploitfun/lsploits/blob/master/hof/hom/malloc_snip.c#L109)。 bk位于malloc_chunk的12偏移处，因此12加入到’fwd’值中(ie. free- 12+12)。现在free的GOT表项被当前释放的chunk地址修改。由于攻击者已经将shellcode放入到当前被释放的chunk中，从现在开始，只要free被调用，攻击者的shellcode就会执行。  
 
 把攻击者的数据文件当做用户输入，执行上述漏洞代码，就会执行攻击者的shellcode，如下所示  
 
@@ -200,7 +200,7 @@ uid=1000(sploitfun) gid=1000(sploitfun) groups=1000(sploitfun),4(adm),24(cdrom),
 ```
 保护: 现如今，由于’glibc malloc’ 被强化(got hardened)， house of mind技术不再有效。为阻止house of mind带来的堆溢出，添加了一下检查：  
  
-[损坏的chunks](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3990) : 未排序的bin的第一个chunk的bk指针必须执行未排序的bin，否则，’glibc malloc’就会抛出一个损坏的chunk错误。   
+[损坏的chunks](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3990) : 未排序的bin的第一个chunk的bk指针必须指向未排序的bin，否则，’glibc malloc’就会抛出一个损坏的chunk错误。   
 ``` c
 if (__glibc_unlikely (fwd->bk != bck))
         {
