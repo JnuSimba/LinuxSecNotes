@@ -216,15 +216,15 @@ if (__builtin_expect (FD->bk != P || BK->fd != P, 0))
 p->fd=ptr-0x18
 p->bk=ptr-0x10
 ```
-布置好如此结构后，再触发unlink宏，会发生如下情况。   
-1.FD=p->fd(实际是ptr-0x18)
-2.BK=p->bk(实际是ptr-0x10)
-3.检查是否满足上文所示的限制，由于FD->bk和BK->fd均为*ptr(即p)，由此可以过掉这个限制
-4.FD->bk=BK
-5.BK->fd=FD(p=ptr-0x18)
-这时候再对p进行写入，可以覆盖掉p原来的值，例如我们用合适的 payload 将`free@got`写入。p就变成了`free@got`，那么再改一次p，把`free@got`改为 shellcode 的地址或者说 system 的地址都可以。之后再调用 free 功能，就可以任意命令执行。
+布置好如此结构后，再触发unlink宏，会发生如下情况。     
+1. FD=p->fd(实际是ptr-0x18)  
+2. BK=p->bk(实际是ptr-0x10)  
+3. 检查是否满足上文所示的限制，由于FD->bk和BK->fd均为*ptr(即p)，由此可以过掉这个限制  
+4. FD->bk=BK    
+5. BK->fd=FD(p=ptr-0x18)    
+这时候再对p进行写入，可以覆盖掉p原来的值，例如我们用合适的 payload 将`free@got`写入。p就变成了`free@got`，那么再改一次p，把`free@got`改为 shellcode 的地址或者说 system 的地址都可以。之后再调用 free 功能，就可以任意命令执行。  
 
-注意：为了更好的演示，漏洞程序在编译的时候没有添加以下保护机制：  
+注意：为了更好的演示，漏洞程序在编译的时候没有添加以下保护机制：    
 
 [ASLR](https://en.wikipedia.org/wiki/Address_space_layout_randomization)  
 [NX](https://en.wikipedia.org/wiki/NX_bit)  
