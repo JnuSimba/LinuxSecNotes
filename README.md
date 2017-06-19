@@ -3,6 +3,7 @@
 
 * Linux 系统底层知识
 	- 汇编指令
+		- [x86 Assembly Guide](./Linux%20系统底层知识/x86%20Assembly%20Guide.md)
 		- [linux x86 汇编程序示例](./Linux%20系统底层知识/linux%20x86%20汇编程序示例.md)
 		- [Linux 函数堆栈调用](./Linux%20系统底层知识/Linux%20函数堆栈调用.md)
 	- ELF 文件
