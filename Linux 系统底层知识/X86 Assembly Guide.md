@@ -418,14 +418,13 @@ The result produced by myFunc is now available for use in the register EAX. The 
 ### Callee Rules
 
 The definition of the subroutine should adhere to the following rules at the beginning of the subroutine:  
-
 1. Push the value of EBP onto the stack, and then copy the value of ESP into EBP using the following instructions:  
 ```
     push %ebp
     mov  %esp, %ebp
 ```
 This initial action maintains the base pointer, EBP. The base pointer is used by convention as a point of reference for finding parameters and local variables on the stack. When a subroutine is executing, the base pointer holds a copy of the stack pointer value from when the subroutine started executing. Parameters and local variables will always be located at known, constant offsets away from the base pointer value. We push the old base pointer value at the beginning of the subroutine so that we can later restore the appropriate base pointer value for the caller when the subroutine returns. Remember, the caller is not expecting the subroutine to change the value of the base pointer. We then move the stack pointer into EBP to obtain our point of reference for accessing parameters and local variables.  
-2. Next, allocate local variables by making space on the stack. Recall, the stack grows down, so to make space on the top of the stack, the stack pointer should be decremented. The amount by which the stack pointer is decremented depends on the number and size of local variables needed. For example, if 3 local integers (4 bytes each) were required, the stack pointer would need to be decremented by 12 to make space for these local variables (i.e., sub $12, %esp). As with parameters, local variables will be located at known offsets from the base pointer.
+2. Next, allocate local variables by making space on the stack. Recall, the stack grows down, so to make space on the top of the stack, the stack pointer should be decremented. The amount by which the stack pointer is decremented depends on the number and size of local variables needed. For example, if 3 local integers (4 bytes each) were required, the stack pointer would need to be decremented by 12 to make space for these local variables (i.e., sub $12, %esp). As with parameters, local variables will be located at known offsets from the base pointer.    
 3. Next, save the values of the callee-saved registers that will be used by the function. To save registers, push them onto the stack. The callee-saved registers are EBX, EDI, and ESI (ESP and EBP will also be preserved by the calling convention, but need not be pushed on the stack during this step).  
 
 After these three actions are performed, the body of the subroutine may proceed. When the subroutine is returns, it must follow these steps:  
