@@ -45,6 +45,7 @@
 	- 绕过漏洞缓解
 		- [return-to-libc 绕过NX](./Linux%20X86%20漏洞利用系列/return-to-libc%20绕过NX.md)
 		- [Return-to-libc链接绕过NX](./Linux%20X86%20漏洞利用系列/Return-to-libc链接绕过NX.md)
+		- [return-to-dl-resolve](./Linux%20X86%20漏洞利用系列/return-to-dl-resolve.md)
 		- [绕过ASLR-第一篇章（return-to-plt）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第一篇章（return-to-plt）.md)
 		- [绕过ASLR-第二篇章（暴力破解）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第二篇章（暴力破解）.md)
 		- [绕过ASLR-第三篇章（GOT覆盖与GOT解引用）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第三篇章（GOT覆盖与GOT解引用）.md)
