@@ -186,7 +186,8 @@ cmd  exp  exp.c  vuln  vuln.c
 $ exit
 sploitfun@sploitfun-VirtualBox:~/lsploits/hof/unlink$
 ```
-保护: 现如今，’glibc malloc’经过许多年的发展已经被强化了(hardened)，unlink已经技术无法成功执行。为了防御unlink技术带来的堆溢出，’glibc malloc’加入了下面的检查：    
+
+保护： 现如今，’glibc malloc’经过许多年的发展已经被强化了(hardened)，unlink已经技术无法成功执行。为了防御unlink技术带来的堆溢出，’glibc malloc’加入了下面的检查：    
 
 * [两次释放(Double Free)](https://github.com/sploitfun/lsploits/blob/master/glibc/malloc/malloc.c#L3947) : 释放已经处于空闲状态的chunk是禁止的。当攻击者试图将’second’ chunk的大小覆盖为-4, 其PREV_INUSE位被复位，意味着’first’已经处于空闲状态。那么这时候再free(first)的话，’glibc malloc’会抛出一个两次释放错误。  
 ``` c
@@ -210,20 +211,6 @@ if (__builtin_expect (nextchunk->size <= 2 * SIZE_SZ, 0)
 if (__builtin_expect (FD->bk != P || BK->fd != P, 0))                     
       malloc_printerr (check_action, "corrupted double-linked list", P);
 ```
-如何绕过还是要根据这段保护代码来谈。我们势必需要构造合适的条件的来过掉这行代码，那么就要找一个指向p的的已知的地址，然后根据这个地址去设置伪造的fd和bk指针就能改掉原p指针。  
-以64bit为例，假设找到了一个已知地址的ptr是指向p(p指向堆上的某个地方)的，通过堆溢出，我们可以做如下的修改。  
-```
-p->fd=ptr-0x18
-p->bk=ptr-0x10
-```
-布置好如此结构后，再触发unlink宏，会发生如下情况。     
-1. FD=p->fd(实际是ptr-0x18)  
-2. BK=p->bk(实际是ptr-0x10)  
-3. 检查是否满足上文所示的限制，由于FD->bk和BK->fd均为*ptr(即p)，由此可以过掉这个限制  
-4. FD->bk=BK    
-5. BK->fd=FD(p=ptr-0x18)    
-
-这时候再对p进行写入，可以覆盖掉p原来的值，例如我们用合适的 payload 将`free@got`写入。p就变成了`free@got`，那么再改一次p，把`free@got`改为 shellcode 的地址或者说 system 的地址都可以。之后再调用 free 功能，就可以任意命令执行。  
 
 注意：为了更好的演示，漏洞程序在编译的时候没有添加以下保护机制：    
 
@@ -231,7 +218,101 @@ p->bk=ptr-0x10
 [NX](https://en.wikipedia.org/wiki/NX_bit)  
 [RELRO(ReLocation Read-Only)](https://isisblogs.poly.edu/2011/06/01/relro-relocation-read-only/) 
 
-## 4. 另一种unlink攻击技术
+## 4. 绕过新版malloc防护
+针对“**损坏的双链表**”如何绕过还是要根据这段保护代码来谈。我们势必需要构造合适的条件的来过掉这行代码，那么就要找一个指向p的的已知的地址，然后根据这个地址去设置伪造的fd和bk指针就能改掉原p指针。  
+以64bit为例，假设找到了一个已知地址的ptr是指向p(p指向堆上的某个地方)的，通过堆溢出，我们可以做如下的修改。  
+```
+p->fd=ptr-0x18
+p->bk=ptr-0x10
+```
+布置好如此结构后，再触发unlink宏，会发生如下情况。  
+1. FD=p->fd(实际是ptr-0x18)  
+2. BK=p->bk(实际是ptr-0x10)  
+3. 检查是否满足上文所示的限制，由于FD->bk和BK->fd均为*ptr(即p)，由此可以过掉这个限制  
+4. FD->bk=BK    
+5. BK->fd=FD(p=ptr-0x18)    
+
+这时候再对p进行写入，可以覆盖掉p原来的值，例如我们用合适的 payload 将`free@got`写入，p就变成了`free@got`，那么再改一次p，把`free@got`改为 shellcode 的地址或者说 system 的地址都可以。之后再调用 free 功能，就可以任意命令执行。   
+
+为了方便，在这边拿出一个最近的wargame出现的一个逻辑非常简单的程序作为漏洞示例程序。  
+
+首先简单介绍这个Binary的功能以及基本情况  
+
+### 开启的保护    
+```
+RELRO    STACK CANARY    NX          PIE     RPATH    RUNPATH    FILE
+No RELRO No canary found NX enabled  No PIE  No RPATH No RUNPATH shellman
+```
+### 基本功能  
+
+1. 显示已经建立的堆块中存储的内容  
+2. 建立一个新的堆块，大小和内容又用户决定  
+3. 对一个已经分配的堆块做编辑，这个地方没有限制大小，若太长可造成堆溢出  
+4. 释放一个已经分配的堆块  
+
+### 存放的堆块的基本逻辑结构  
+```
+.bss:00000000006016C0 ; __int64 usingFLAG[]
+.bss:00000000006016C0 usingFLAG       dq ?                    ; DATA XREF: main+38o
+.bss:00000000006016C0                                         ; .text:0000000000400A90o ...
+.bss:00000000006016C8 ; __int64 LEN[]
+.bss:00000000006016C8 LEN             dq ?                    ; DATA XREF: new+B5w
+.bss:00000000006016C8                                         ; delete+79w
+.bss:00000000006016D0 ; __int64 content[]
+.bss:00000000006016D0 content         dq ?                    ; DATA XREF: new+BCw
+```
+程序有一个全局数组会存储好每一个经过malloc分配的堆块返回的指针。以及在全局数组中存储长度以及本块是否正在使用的标志。  
+
+### 如何利用  
+
+按照前文所介绍的，我们希望使用Unlink的方法去利用这个堆溢出漏洞。首先，我们要找一个指向堆上某处的指针。因为存储malloc返回指针的全局数组的存在，这让我们的利用变得异常的简单。因为bss段的地址也是固定的，我们可以知道，从而设置满足需要的bk和fd指针，下面介绍具体步骤。    
+
+1. 我们可以首先分配两个长度合适的堆块。(如下图所示)    
+```
+chunk0                malloc返回的ptr        chunk1        malloc返回的ptr
+|                     |                     |             |
++-----------+---------+---+---+-------------+------+------+----+----+------+
+|           |         |   |   |             |      |      |    |    |      |
+|           |         |   |   |             | prev | size&|    |    |      |
+| prev_size |size&Flag|   |   |             | size | flag |    |    |      |
+|           |         |   |   |             |      |      |    |    |      |
+|           |         |   |   |             |      |      |    |    |      |
++-----------+---------+---+---+-------------+------+------+----+----+------+
+```
+这时候这两块的fd和bk区域其实都是空的，因为他们都是正在使用的  
+
+2. 对第一块进行编辑，编辑的过程中设置好第零块的bk和fd指针并溢出第一块，改好第一块的chunk头的控制信息(如下图所示)  
+```
+chunk0                malloc返回的ptr           chunk1        malloc返回的pt
+|                     |                        |             |
++-----------+---------+----+----+----+----+----+------+------+----+----+------+
+|           |         |fake|fake|fake|fake| D  | fake | fake |    |    |      |
+|           |         |prev|size| FD | BK | A  | prev | size&|    |    |      |
+| prev_size |size&Flag|size|    |    |    | T  | size | flag |    |    |      |
+|           |         |    |    |    |    | A  |      |      |    |    |      |
+|           |         |    |    |    |    |    |      |      |    |    |      |
++-----------+---------+----+----+----+----+----+------+------+----+----+------+
+                      |--------new_size--------|
+```
+我们为了欺骗glibc，让它以为堆块零malloc返回的指针(我们后文中简记为p)出就是chunk0指针，所以我们伪造了prev_size和size的部分，然后溢出堆块1，改掉第1个堆块的prev_size,数值应该是上图所示new_size的大小；另外第1块的size部分还要把prev_inuse的flag给去掉，如此就做好了unlink触发之前的准备工作。    
+
+3. 删掉chunk1,触发unlink(p)，将p给改写。
+在删除堆块1时，glib会检查一下自己的size部分的prev_inuse FLAG，发现到到比较早的一个chunk是空闲的(实际是我们伪造的)，glibc希望将即将出现的两个空闲块合并。glibc会先将chunk0从它的Binlist中解引用，所以触发unlink(p)。  
+1).FD=p->fd(实际是0x6016D0-0x18,因为全局数组里面指向p的那个指针就是0x6016D0)  
+2).BK=p->bk(实际是6016D0-0x10)  
+3).检查是否满足上文所示的限制，由于FD->bk和BK->fd均为*6016D0(即p)，由此可以过掉这个限制  
+4).FD->bk=BK  
+5).BK->fd=FD(p=0x6016D0-0x18)  
+
+4. 对p再次写入，修改p为free@got地址  
+
+5. 现在p已经是free@got了，我们只要使用一次List功能便可以知道free函数的真实地址，进而算出libc的基址来过掉ASLR。  
+
+6. 根据已经算出的libc基址再次算出system函数的真实地址(如果没有libc，可以考虑遍历多个chunk 地址面的函数，这样在list时，我们可以得到两个libc函数的真实地址，根据其偏移，便可以找出服务器上的libc，若保护再够复杂无法改got，我们还可以构造ropchain，同样利用这样的方式，把ropchain丢进全局数组中)  
+
+7. 因为free已经变成了system，只要再建立一个内容为/bin/sh的块，再删掉，就可以得到shell，由此全部利用完成。  
+
+## 5. 另一种unlink攻击技术
 经过上述3层安全检测，是否意味着所有unlink技术都失效了呢？答案是否定的，因为进行漏洞攻击的人脑洞永远比天大！之前刚好看到一篇[好文](https://github.com/JnuSimba/AndroidSecNotes/blob/master/Android%E7%B3%BB%E7%BB%9F%E5%AE%89%E5%85%A8/Android%20%E4%B8%AD%E5%A0%86unlink%20%E5%88%A9%E7%94%A8%E5%AD%A6%E4%B9%A0.md)(强烈推荐)，主讲在Android4.4上利用unlink机制实现堆溢出攻击。众所周知，Android内核基于linux，且其堆内存管理也是使用的glibc malloc，虽然在一些细节上有些许不同，但核心原理类似。该文介绍的攻击方式就成功绕过了上述三层检测。  
 
 ## 参考
