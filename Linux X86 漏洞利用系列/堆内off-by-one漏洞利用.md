@@ -265,4 +265,7 @@ sh-4.2# exit
 exit
 $
 ```
-Our off-by-one vulnerable code consolidates chunks in forward direction, similarly chunks can also be consolidated in backward direction. Such off-by-one vulnerable codes which consolidates chunks in backward direction can also be exploited!!        
+Our off-by-one vulnerable code consolidates chunks in forward direction, similarly chunks can also be consolidated in backward direction. Such off-by-one vulnerable codes which consolidates chunks in backward direction can also be exploited!!   
+
+## Reference
+[Hiroki Matsukuma](https://www.slideshare.net/codeblue_jp/cb16-matsukuma-en-68459606)     
