@@ -33,7 +33,7 @@ Libsafe是一个动态链 接库，在标准的C库之前被加载，主要加�
 从名字可以看出这是一个linux上的内核补丁，该补丁最主要的特性是：用户区堆栈不可执行[Non-executableUser Stack]由于x86 CPU上并没有提供页（page）执行的bit位，所以该补丁通过减小代码段的虚拟地址来区分数据段和代码段，程序执行流返回 0xC0000000 以下一段用户堆栈空间的操作都被认为是缓冲区溢出攻击行为，随即产生一个通用保护异常而终止进程。这样把shellcode安置在 buffer或环境变量（都位于堆栈段）的exploit都会失效。当然其安全也不是绝对的，利用PLT返回库函数的文章里详细描述了突破该补丁的攻击方 法。该补丁还有一些其他的特性：动态链接库映射到地址低端（0x00开始）、限制符号链接攻击、/tmp目录限制、/proc目录限制、execve系统 调用加固等。
 2. Solaris/SPARC nonexec-stack protection
 在Solaris/SPARC下可以通过去掉堆栈的执行权限来禁止堆栈段执行，方法如下，在/etc/system中加入两条语句：  
-　　`Setnoexec_user_stack = 1`   
+　　`Set noexec_user_stack = 1`   
 　　`Set noexec_user_stack_log = 1`  
 第一条禁止堆栈执行，第二条记录所有尝试在堆栈段运行代码的活动。Reboot之后才会生效。所有只让栈不可执行的保护是有限的。Return-to-libc、fake frame之类的技术都可以突破限制，不过栈不可执行的保护已经极大了提升了攻击难度。  
 
