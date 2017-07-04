@@ -311,14 +311,14 @@ for(;;) {
 The unsorted_chunks at line #3927 will return the address of `av->bins[0]`: this address + 12 is going to be stored in the victim variable. bck will point to victim->bk (which means victim + 12).
 If `&av->bins[0] + 16 – 12` is stored at `&av->bins[0] + 12`, then  
 
-`victim = &av->bins[0] + 4`
-If the return address location – 8 is stored at &av->bins[0] + 16, then  
+`victim = &av->bins[0] + 4`  
+If the return address location – 8 is stored at &av->bins[0] + 16, then    
 
-`bck = (&av->bins[0] + 4)->bk = av->bins[0] + 16 = &EIP - 8`  
+`bck = (&av->bins[0] + 4)->bk = av->bins[0] + 16 = &EIP - 8`    
 A JMP instruction must be set at av->bins[0] in order to jump at `&av->bins[0] + 20`. When the execution reaches line #3965 (unsorted_chunks(av)->bk = bck), in the end the following will happen:  
 
-`bck->fd = EIP = &av->bins[0]`
+`bck->fd = EIP = &av->bins[0]`  
 A NOP slide + shellcode is then required to be stored at &av->bins[0] + 20. When the RET instruction will be executed, then the flow will be redirected to the JMP instruction aforementioned and the heap overflow will be fully exploited.    
 
-So far, this is the first one of the techniques described by Phantasmal Phantasmagoria. It actually didn’t last that much after the publication of the article, as, two days after, [this](https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=bf58906631af8fe0d57625988b1d003cc09ef01d;hp=04ec80e410b4efb0576a2ffd0d2f29ed1fdac451) patch made the free function fail in case the size of the chunk is smaller than MINSIZE (set to 16). As the base of this kind of exploit is the ability to free chunks that are 8 bytes long, then this whole thing is not working anymore since glibc 2.4.
-Nothing new has been introduced in this article, as it’s just a reporting of what others already did. Anyway, it becomes evident how difficult heap overflows can be.
+So far, this is the first one of the techniques described by Phantasmal Phantasmagoria. It actually didn’t last that much after the publication of the article, as, two days after, [this](https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=bf58906631af8fe0d57625988b1d003cc09ef01d;hp=04ec80e410b4efb0576a2ffd0d2f29ed1fdac451) patch made the free function fail in case the size of the chunk is smaller than MINSIZE (set to 16). As the base of this kind of exploit is the ability to free chunks that are 8 bytes long, then this whole thing is not working anymore since glibc 2.4.   
+Nothing new has been introduced in this article, as it’s just a reporting of what others already did. Anyway, it becomes evident how difficult heap overflows can be.  
