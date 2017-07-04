@@ -28,14 +28,14 @@ struct malloc_chunk {
   struct malloc_chunk* bk;
 };
 ```
-这里的结构是chunk头部分的内容。在内存块free之前，最后两个指针是不存在的，只有前2项的内容。在第二项之后就是可供程序使用的内存了，也就是malloc返回的那个指针指向的地址。而在内存被释放之后，系统在内存块中添加最后的这两个指针。这两个指针的作用是构成双向链表，它们分别指向了前一个和后一个已经被释放的空闲内存。(顺带一提，这是个环形的双向链表，收尾是相接的)  
+这里的结构是chunk头部分的内容。在内存块free之前，最后两个指针是不存在的，只有前2项的内容。在第二项之后就是可供程序使用的内存了，也就是malloc返回的那个指针指向的地址。而在内存被释放之后，系统在内存块中添加最后的这两个指针。这两个指针的作用是构成双向链表，它们分别指向了前一个和后一个已经被释放的空闲内存。(顺带一提，这是个环形的双向链表，首尾是相接的)  
 
 当程序申请一块内存的时候，系统会遍历这个由空闲内存构成的双向链表。如果有合适(>=)的空闲内存，就会将它（或者一部分，具体没有研究）分配给程序。    
 
 所有空闲的chunk之间的联系就像这样    
 ![](../pictures/heapdoublefree.jpg)    
 
-然后是prev_size和size的作用，prev_size是前一个chunk的大小，值得注意的是如果前一个chunk在使用中，这里会是0，唯有前一个chunk已经被释放的情况下这里才会有数值，所以prev_size应该叫前一个空闲堆块的大小。然后是size，这个就是当前chunk的大小，包括给程序使用的和chunk头的大小加在一起。因为所有的chunk的大小都是4字节对齐的，所以size最低3位一定是0。被操作系统拿来当做flag标志位。(最低位:指示前一个chunk是否正在使用;倒数第二位:指示这个chunk是否是通过mmap方式产生的;倒数第三位:这个chunk是否属于一个线程的arena)这里只需要关心最低位的涵义，它指示前一个chunk是否是空闲的。这个flag位加上prev_size一起作为系统判断一块内存是否正在使用，从哪里开始的依据。
+然后是prev_size和size的作用，prev_size是前一个chunk的大小，值得注意的是如果前一个chunk在使用中，这里会是前一个chunk的payload 部分，唯有前一个chunk已经被释放的情况下这里才会有数值，所以prev_size应该叫前一个空闲堆块的大小。然后是size，这个就是当前chunk的大小，包括给程序使用的和chunk头的大小加在一起。因为所有的chunk的大小都是4字节对齐的，所以size最低3位一定是0，被操作系统拿来当做flag标志位。(最低位：指示前一个chunk是否正在使用；倒数第二位：指示这个chunk是否是通过mmap方式产生的；倒数第三位：这个chunk是否属于一个线程的arena)这里只需要关心最低位的涵义，它指示前一个chunk是否是空闲的。这个flag位加上prev_size一起作为系统判断一块内存是否正在使用，从哪里开始的依据。
 
 要注意的是，只有大小合适的内存才会用这种方法分配，太小的内存会用fastbins的方法管理，有兴趣的可以了解一下。这里给出使用fastbins的阈值。32位操作系统上是0x40，64位操作系统上是0x80，小于这个数值的内存会用fastbins的方法管理。如果chunk的大小大于512个字节之后，系统除了两个指针双向链表指针之外还会再添加2个指针指向下一块较大的内存。然后是chunk头中几个数据的大小，INTERNAL_SIZE_T其实就是unsigned long型的数据，而另外2个是指针不用多说，所以chunk头的大小也和操作系统的位数有关。  
 
@@ -114,9 +114,9 @@ if (__builtin_expect (FD->bk != P || BK->fd != P, 0))
 要利用Double Free的漏洞。我们就要让系统进行unlink的操作，达到篡改指针的目的。但是一般的情况下，我们两次释放同一块内存会被操作系统给检测出来，怎么欺骗过操作系统才是最重要的。  
 
 我们结合实际的情况来讲解会比较好。这里我自己写了个demo程序，代码发比较长，所以我放在[gitcafe](https://gitcafe.com/zh_explorer/zh_explorer/blob/master/heap.c)上。    
-因为是自己写自己玩的demo程序，所以这程序是堆漏洞大礼包。用Double Free，heap corruption，use after free这3种方法都用各拿了一次shell，这里我们用Double Free，其他漏洞一律不使用。  
+因为是自己写自己玩的demo程序，所以这程序是堆漏洞大礼包。用Double Free，heap corruption，use after free这3种方法都各拿了一次shell，这里我们用Double Free，其他漏洞一律不使用。  
 
-这个程序在free的时候很明显的没有检验指针的有效性，而且没有在free之后将野指针清零。而且可以任意的指定每一个chunk的大小。所以可以很容易的构造double free。我们首先构造一个野指针： 
+这个程序在free的时候很明显的没有检验指针的有效性，且没有在free之后将野指针清零。而且可以任意的指定每一个chunk的大小，所以可以很容易的构造double free。我们首先构造一个野指针： 
 ```
 >malloc(504)
 >malloc(512)
@@ -140,7 +140,7 @@ if (__builtin_expect (FD->bk != P || BK->fd != P, 0))
 if (__builtin_expect (FD->bk != P || BK->fd != P, 0))
    malloc_printerr (check_action, "corrupted double-linked list", P, AV);
 ```
-结合而源代码，可以看到现在FD->bk的值正好也是指向我们伪造的chunk的头部分，然后我们在野指针p 的前面又伪造了一个chunk头。prve_size部分填0x1f8正好是前一个伪造chunk的大小，然后size部分填的是0x108，这样的话两个chunk正将我们申请的空间填满。然后第二个伪造chunk的size中最低位的flag置为0，这样free指针p 的时候，就会将前一个伪造的chunk给unlink。  
+结合源代码，可以看到现在FD->bk的值正好也是指向我们伪造的chunk的头部分，然后我们在野指针p 的前面又伪造了一个chunk头。prev_size部分填0x1f8正好是前一个伪造chunk的大小，然后size部分填的是0x108，这样的话两个chunk正将我们申请的空间填满。然后第二个伪造chunk的size中最低位的flag置为0，这样free指针p 的时候，就会将前一个伪造的chunk给unlink。  
 
 现在，只要在free一次指针p，就可以触发漏洞了。这时候，我们的操作系统不会报错，而且我们本来正常的指针ptr已经变成了ptr-0xc。这要如果我们如果调用Edit函数来修改这个chunk的话，就可以干各种各样的事情了。  
 
