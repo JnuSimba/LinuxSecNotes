@@ -57,7 +57,7 @@
 		- [绕过ASLR-第三篇章（GOT覆盖与GOT解引用）](./Linux%20X86%20漏洞利用系列/绕过ASLR-第三篇章（GOT覆盖与GOT解引用）.md)
 	- 一步一步学ROP
 		- [Linux x86 篇](./一步一步学ROP/Linux%20x86%20篇.md)
-		- [Linux x64 篇](./一步一步学ROP/Linux%20x84%20篇.md)
+		- [Linux x64 篇](./一步一步学ROP/Linux%20x64%20篇.md)
 		- [gadgets和2free篇](./一步一步学ROP/gadgets和2free%20篇.md)
 		- [Android ARM 32位篇](./一步一步学ROP/Android%20ARM%2032位篇.md)
 	
